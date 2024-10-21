@@ -15,23 +15,35 @@ export default function TabLayout() {
         headerShown: false,
       }}>
       <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color, focused }) => (
-            <TabBarIcon name={focused ? 'home' : 'home-outline'} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="explore"
         options={{
-          title: 'Explore',
+          title: 'Пошук',
           tabBarIcon: ({ color, focused }) => (
-            <TabBarIcon name={focused ? 'code-slash' : 'code-slash-outline'} color={color} />
+            <TabBarIcon name={focused ? 'search' : 'search-outline'} color={color} />
           ),
         }}
       />
+
+      <Tabs.Screen
+        name="camera"
+        options={{
+          title: 'Сканувати',
+          tabBarIcon: ({ color, focused }) => (
+            <TabBarIcon name={focused ? 'camera' : 'camera-outline'} color={color} />
+          ),
+        }}
+      />
+
+<Tabs.Screen
+  name="index"
+  options={{
+    title: 'Інфо',
+    tabBarIcon: ({ color, focused }) => (
+      <TabBarIcon name={focused ? 'information-circle' : 'information-circle-outline'} color={color} />
+    ),
+  }}
+/>
+
     </Tabs>
   );
 }
