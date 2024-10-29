@@ -22,6 +22,8 @@ interface Substance {
   imdg: string;
   haz: string;
   lethal: number;
+  container: string;
+  limitConcentration: number;
   dangerSquare: {
     health: number;
     fire: number;
@@ -32,7 +34,7 @@ interface Substance {
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
-const SCAN_AREA_SIZE = SCREEN_WIDTH * 0.9; // 90% of screen width
+const SCAN_AREA_SIZE = SCREEN_WIDTH * 0.9;
 
 const OCR_SERVER_URL = 'http://10.138.134.126:8080/substances/extract-text';
 
@@ -57,9 +59,9 @@ export default function QRScanner() {
   if (!permission.granted) {
     return (
       <View style={styles.container}>
-        <Text style={{ textAlign: 'center' }}>We need your permission to show the camera</Text>
+        <Text style={{ textAlign: 'center' }}>Для того щоб здійснити сканування потрібно надати дозвіл на використання камери</Text>
         <TouchableOpacity style={styles.button} onPress={requestPermission}>
-          <Text style={styles.buttonText}>Grant permission</Text>
+          <Text style={styles.buttonText}>Надати дозвіл</Text>
         </TouchableOpacity>
       </View>
     );
@@ -151,7 +153,7 @@ export default function QRScanner() {
 
   const handleSendPhoto = async () => {
     if (!photo || !photo.uri) {
-      Alert.alert("Error", "No photo to send");
+      Alert.alert("Помилка", "Немає фото для надсилання.");
       return;
     }
   
@@ -202,6 +204,8 @@ export default function QRScanner() {
           generalDanger: data.generalDanger || '',
           waterDanger: data.waterDanger || '',
           healthDanger: data.healthDanger || '',
+          limitConcentration: data.limitConcenration || '',
+          container: data.container || '',
           dangerSquare: {
             health: data.dangerSquare?.health || 0,
             fire: data.dangerSquare?.fire || 0,
@@ -217,7 +221,7 @@ export default function QRScanner() {
         setResultsModalVisible(true);
       } else {
         console.error("Unexpected response format:", data);
-        Alert.alert("Error", "Unexpected response format from the server");
+        Alert.alert("Помилка", "Ніпдтримуваний формат даних.");
       }
   
     } catch (error: unknown) {
@@ -226,7 +230,7 @@ export default function QRScanner() {
       if (error instanceof Error) {
         errorMessage += `: ${error.message}`;
       }
-      Alert.alert("Error", errorMessage);
+      Alert.alert("Помилка", 'Сталась непередбачувана помилка.');
     } finally {
       setIsLoading(false);
     }
@@ -317,6 +321,16 @@ export default function QRScanner() {
                 <Text style={styles.boldText}>Летальна доза: </Text>
                 <Text style={styles.italicText}>{selectedSubstance.lethal}</Text>
               </Text>
+
+              <Text style={styles.modalText}>
+                <Text style={styles.boldText}>Гранично допустима концентрація: </Text>
+                <Text style={styles.italicText}>{selectedSubstance.limitConcentration}</Text>
+              </Text>
+
+              <Text style={styles.modalText}>
+                <Text style={styles.boldText}>Стійкість тари: </Text>
+                <Text style={styles.italicText}>{selectedSubstance.container}</Text>
+              </Text>
             
               <Text style={styles.modalSubtitle}>Квадрат небезпеки</Text>
             
@@ -346,7 +360,7 @@ export default function QRScanner() {
             )}
           </ScrollView>
           <TouchableOpacity style={styles.closeButton} onPress={closeResultsModal}>
-            <Text style={styles.buttonText}>ЗАКРИТИ</Text>
+            <Text style={styles.closeButtonText}>ЗАКРИТИ</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -366,7 +380,7 @@ export default function QRScanner() {
         />
         <View style={styles.buttonContainer}>
           <TouchableOpacity style={styles.button} onPress={handleRetakePhoto}>
-            <Ionicons name="refresh" size={32} color="white" />
+            <Ionicons name="refresh" size={32} color="#1a73e8" />
             <Text style={styles.buttonText}>Сканувати</Text>
           </TouchableOpacity>
   
@@ -375,7 +389,7 @@ export default function QRScanner() {
             onPress={handleSendPhoto} 
             disabled={isLoading}
           >
-            <Ionicons name="send" size={32} color="white" />
+            <Ionicons name="send" size={32} color="#1a73e8" />
             <Text style={styles.buttonText}>{isLoading ? 'Надсилання...' : 'Надіслати'}</Text>
           </TouchableOpacity>
         </View>
@@ -403,11 +417,11 @@ export default function QRScanner() {
       </CameraView>
       <View style={styles.buttonContainer}>
         <TouchableOpacity style={styles.button} onPress={handleScan}>
-          <Ionicons name="scan" size={32} color="white" />
+          <Ionicons name="scan" size={32} color="#1a73e8" />
           <Text style={styles.buttonText}>Сканувати</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.button} onPress={handleUploadFromGallery}>
-          <Ionicons name="images" size={32} color="white" />
+          <Ionicons name="images" size={32} color="#1a73e8" />
           <Text style={styles.buttonText}>Завантажити</Text>
         </TouchableOpacity>
       </View>
@@ -433,7 +447,7 @@ const styles = StyleSheet.create({
   button: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'gray',
+    backgroundColor: 'white',
     paddingVertical: 10,
     paddingHorizontal: 15,
     borderRadius: 35,
@@ -441,7 +455,7 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: 'white',
+    color: '#1a73e8',
     marginLeft: 10,
   },
   overlay: {
@@ -449,7 +463,7 @@ const styles = StyleSheet.create({
   },
   unfocusedContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: 'rgba(0,0,0,0.8)',
   },
   middleContainer: {
     flexDirection: 'row',
@@ -461,7 +475,7 @@ const styles = StyleSheet.create({
   },
   scanArea: {
     borderColor: 'red',
-    borderWidth: 2,
+    borderWidth: 4,
     flex: 1,
   },
   previewContainer: {
@@ -498,14 +512,14 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 10,
-    color: '#000',
+    color: '#1a73e8',
   },
   modalSubtitle: {
     fontSize: 18,
     fontWeight: 'bold',
     marginTop: 10,
     marginBottom: 5,
-    color: '#000',
+    color: '#1a73e8',
   },
   modalText: {
     fontSize: 16,
@@ -513,14 +527,20 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   closeButton: {
-    alignSelf: 'center',
     backgroundColor: '#007BFF',
     padding: 15,
     borderRadius: 8,
-    margin: 5,
-    width: '80%',
-    alignItems: 'center',
-    marginBottom: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  closeButtonText:{
+    color: '#fff',
+    textAlign: 'center',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
   boldText: {
     fontWeight: 'bold',

@@ -14,6 +14,8 @@ import {
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 
+
+
 interface Substance {
   oon: number;
   name: string;
@@ -30,6 +32,8 @@ interface Substance {
   imdg: string;
   haz: string;
   lethal: number;
+  container: string;
+  limitConcentration: number;
   dangerSquare: {
     health: number;
     fire: number;
@@ -39,7 +43,7 @@ interface Substance {
 }
 
 const SubstancesScreen: React.FC = () => {
-  const [searchNameQuery, setSearchNameQuery] = useState('');
+const [searchNameQuery, setSearchNameQuery] = useState('');
 const [oon, setOon] = useState('');
 const [searchHazQuery, setSearchHazQuery] = useState(''); // HAZ код
 const [searchImdgQuery, setSearchImdgQuery] = useState(''); // IMDG код
@@ -84,14 +88,14 @@ const openResultsModal = async () => {
   switch (searchBy) {
     case 'oon':
       if (!oon.trim()) {
-        Alert.alert('Error', 'Please enter a valid OОН number.');
+        Alert.alert('Помилка', 'Будь-ласка введіть коректний ООН-номер.');
         return;
       }
       url = `http://10.138.134.126:8080/substances/oon-number/${oon}`;
       break;
     case 'name':
       if (!searchNameQuery.trim()) {
-        Alert.alert('Error', 'Please enter a valid name.');
+        Alert.alert('Помилка', 'Будь-ласка введіть коректну назву речовини.');
         return;
       }
       query = encodeURIComponent(searchNameQuery);
@@ -99,7 +103,7 @@ const openResultsModal = async () => {
       break;
     case 'haz':
       if (!searchHazQuery.trim()) {
-        Alert.alert('Error', 'Please enter a valid HAZ code.');
+        Alert.alert('Помилка', 'Будь-ласка введіть коректний HAZ-код.');
         return;
       }
       query = encodeURIComponent(searchHazQuery);
@@ -107,7 +111,7 @@ const openResultsModal = async () => {
       break;
     case 'imdg':
       if (!searchImdgQuery.trim()) {
-        Alert.alert('Error', 'Please enter a valid IMDG code.');
+        Alert.alert('Помилка', 'Будь-ласка введіть коректний IMDG-код.');
         return;
       }
       query = encodeURIComponent(searchImdgQuery);
@@ -115,14 +119,14 @@ const openResultsModal = async () => {
       break;
     case 'formula':
       if (!searchFormulaQuery.trim()) {
-        Alert.alert('Error', 'Please enter a valid chemical formula.');
+        Alert.alert('Помилка', 'Будь-ласка введіть коректну формулу.');
         return;
       }
       query = encodeURIComponent(searchFormulaQuery);
       url = `http://10.138.134.126:8080/substances/formula/${query}`;
       break;
     default:
-      Alert.alert('Error', 'Invalid search type.');
+      Alert.alert('Помилка', 'Введено некоректні дані.');
       return;
   }
 
@@ -152,13 +156,14 @@ const openResultsModal = async () => {
   } catch (error: unknown) {
     if (error instanceof Error) {
       console.error('Error details:', error);
-      Alert.alert('Error', `Failed to fetch results: ${error.message}`);
+      Alert.alert('Помилка', `Даних не знайдено.`);
     } else {
       console.error('Unknown error:', error);
-      Alert.alert('Error', 'An unknown error occurred.');
+      Alert.alert('Помилка', 'Сталась невідома помилка.');
     }
   }
 };
+
   
 
   const closeResultsModal = () => {
@@ -167,11 +172,7 @@ const openResultsModal = async () => {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
-    >
+    <ThemedView style={styles.mainContainer}>
       <ThemedView style={styles.innerContainer}>
         <View style={styles.buttonContainer}>
           <TouchableOpacity style={styles.button} onPress={() => openSearchModal('name')}>
@@ -195,8 +196,8 @@ const openResultsModal = async () => {
         </View>
         {/* Search Modal */}
         <Modal visible={searchModalVisible} animationType="slide" transparent={true}>
-  <View style={styles.modalContainer}>
-    <View style={styles.modalContent}>
+  <View style={styles.modalSearchContainer}>
+    <View style={styles.modalSearchContent}>
       {searchBy === 'oon' ? (
         <>
           <TextInput
@@ -241,7 +242,7 @@ const openResultsModal = async () => {
         <ThemedText style={styles.searchButtonText}>Пошук</ThemedText>
       </TouchableOpacity>
       <TouchableOpacity style={styles.closeButton} onPress={closeSearchModal}>
-        <ThemedText style={styles.buttonText}>Закрити</ThemedText>
+        <ThemedText style={styles.closeButtonText}>Закрити</ThemedText>
       </TouchableOpacity>
     </View>
   </View>
@@ -323,6 +324,16 @@ const openResultsModal = async () => {
                 <Text style={styles.boldText}>Летальна доза: </Text>
                 <Text style={styles.italicText}>{selectedSubstance.lethal}</Text>
               </Text>
+
+              <Text style={styles.modalText}>
+                <Text style={styles.boldText}>Гранично допустима концентрація: </Text>
+                <Text style={styles.italicText}>{selectedSubstance.limitConcentration}</Text>
+              </Text>
+
+              <Text style={styles.modalText}>
+                <Text style={styles.boldText}>Стійкість тари: </Text>
+                <Text style={styles.italicText}>{selectedSubstance.container}</Text>
+              </Text>
             
               <Text style={styles.modalSubtitle}>Квадрат небезпеки</Text>
             
@@ -358,37 +369,64 @@ const openResultsModal = async () => {
           </View>
         </Modal>
       </ThemedView>
-    </KeyboardAvoidingView>
+    </ThemedView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  mainContainer:{
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#f8f9fa'
+  },
+  modalSearchContainer:{
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 45,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalSearchContent:{
+    backgroundColor: '#f8f9fa',
+    padding: 20,
+    borderRadius: 10,
+    width: '75%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 15,
+    elevation: 15,
   },
   innerContainer: {
     flex: 1,
     justifyContent: 'center',
+    alignContent: 'center',
     padding: 16,
+    backgroundColor: '#f8f9fa',
   },
   buttonContainer: {
     flexDirection: 'column',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,
+    backgroundColor: '#f8f9fa',
   },
   button: {
-    backgroundColor: '#007BFF',
+    backgroundColor: 'white',
     padding: 15,
     borderRadius: 8,
     margin: 5,
     width: '80%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
   },
   buttonText: {
-    color: '#fff',
+    color: '#1a73e8',
     textAlign: 'center',
     fontSize: 16,
+    fontWeight: 'bold',
   },
   modalContainer: {
     flex: 1,
@@ -397,10 +435,16 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContent: {
-    backgroundColor: '#fff',
+    backgroundColor: '#f8f9fa',
     padding: 20,
     borderRadius: 10,
     width: '100%',
+    height: '90%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 20,
   },
   searchInput: {
     height: 40,
@@ -409,38 +453,65 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     paddingHorizontal: 10,
     marginBottom: 10,
+    fontStyle: 'italic',
+    backgroundColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 6,
   },
   searchButton: {
     backgroundColor: '#28A745',
     padding: 15,
     borderRadius: 8,
     marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
   },
   searchButtonText: {
-    color: '#000', // Text color set to black
+    color: '#fff',
     textAlign: 'center',
+    fontWeight: 'bold',
     fontSize: 16,
   },
   closeButton: {
-    backgroundColor: '#007BFF', // Optional: change to match button style
+    backgroundColor: '#007BFF',
     padding: 15,
     borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  closeButtonText: {
+    color: '#fff',
+    textAlign: 'center',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
   infoCard: {
     marginBottom: 10,
+    backgroundColor: '#f8f9fa',
+    padding: 15,
+    borderRadius: 8,
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 10,
-    color: '#000',
+    color: '#007BFF',
   },
   modalSubtitle: {
     fontSize: 18,
     fontWeight: 'bold',
     marginTop: 10,
     marginBottom: 5,
-    color: '#000',
+    color: '#007BFF',
   },
   modalText: {
     fontSize: 16,
