@@ -6,8 +6,6 @@ import {
   Modal,
   TouchableOpacity,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
   ScrollView,
   Text
 } from 'react-native';
@@ -51,29 +49,92 @@ const [searchFormulaQuery, setSearchFormulaQuery] = useState(''); // Хіміч�
 const [selectedSubstance, setSelectedSubstance] = useState<Substance | null>(null);
 const [searchModalVisible, setSearchModalVisible] = useState(false);
 const [resultsModalVisible, setResultsModalVisible] = useState(false);
+const [substanceIds, setSubstanceIds] = useState<number[]>([]);
+const [isLoading, setIsLoading] = useState(false);
+const [currentIndex, setCurrentIndex] = useState(0);
+  
 
 // Оновлення стану для 'searchBy', щоб включити нові варіанти пошуку
-const [searchBy, setSearchBy] = useState<'name' | 'oon' | 'haz' | 'imdg' | 'formula' | null>(null);
+const [searchBy, setSearchBy] = useState<'name' | 'oon' | 'haz' | 'imdg' | 'formula' | 'all' | null>(null);
 
-// Оновлена функція для відкриття модального вікна пошуку
-const openSearchModal = (type: 'name' | 'oon' | 'haz' | 'imdg' | 'formula') => {
-  setSearchBy(type);
-
-  // Очищення полів пошуку для всіх критеріїв
-  setSearchNameQuery('');
-  setOon('');
-  setSearchHazQuery('');
-  setSearchImdgQuery('');
-  setSearchFormulaQuery('');
-
-  setSearchModalVisible(true);
+const fetchSubstanceIds = async () => {
+  setIsLoading(true);
+  try {
+    const url = 'http://10.138.134.126:8080/substances/ids';
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      throw new Error(`Network response was not ok (${response.status})`);
+    }
+    
+    const ids = await response.json();
+    setSubstanceIds(ids);
+    
+    if (ids.length > 0) {
+      setCurrentIndex(0);
+      await fetchSubstanceById(ids[0]);
+    }
+  } catch (error) {
+    console.error('Error fetching substance IDs:', error);
+    Alert.alert('Помилка', 'Не вдалося отримати список речовин');
+  } finally {
+    setIsLoading(false);
+  }
 };
 
-// Функція для закриття модального вікна
+const fetchSubstanceById = async (oon: number) => {
+  setIsLoading(true);
+  try {
+    const url = `http://10.138.134.126:8080/substances/oon-number/${oon}`;
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      throw new Error(`Network response was not ok (${response.status})`);
+    }
+    
+    const substance = await response.json();
+    setSelectedSubstance(substance);
+    setResultsModalVisible(true);
+  } catch (error) {
+    console.error('Error fetching substance:', error);
+    Alert.alert('Помилка', 'Не вдалося отримати інформацію про речовину');
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+const handleNext = () => {
+  if (currentIndex < substanceIds.length - 1) {
+    const nextIndex = currentIndex + 1;
+    setCurrentIndex(nextIndex);
+    fetchSubstanceById(substanceIds[nextIndex]);
+  }
+};
+
+const handlePrevious = () => {
+  if (currentIndex > 0) {
+    const prevIndex = currentIndex - 1;
+    setCurrentIndex(prevIndex);
+    fetchSubstanceById(substanceIds[prevIndex]);
+  }
+};
+
+const openSearchModal = (type: 'name' | 'oon' | 'haz' | 'imdg' | 'formula' | 'all') => {
+  setSearchBy(type);
+  if (type === 'all') {
+    fetchSubstanceIds();
+  } else {
+    setSearchNameQuery('');
+    setOon('');
+    setSearchHazQuery('');
+    setSearchImdgQuery('');
+    setSearchFormulaQuery('');
+    setSearchModalVisible(true);
+  }
+};
+
 const closeSearchModal = () => {
   setSearchModalVisible(false);
-
-  // Очищення всіх полів при закритті модального вікна
   setSearchNameQuery('');
   setOon('');
   setSearchHazQuery('');
@@ -82,6 +143,7 @@ const closeSearchModal = () => {
 };
 
 const openResultsModal = async () => {
+  setIsLoading(true);
   let url = '';
   let query = '';
 
@@ -89,6 +151,7 @@ const openResultsModal = async () => {
     case 'oon':
       if (!oon.trim()) {
         Alert.alert('Помилка', 'Будь-ласка введіть коректний ООН-номер.');
+        setIsLoading(false);
         return;
       }
       url = `http://10.138.134.126:8080/substances/oon-number/${oon}`;
@@ -96,6 +159,7 @@ const openResultsModal = async () => {
     case 'name':
       if (!searchNameQuery.trim()) {
         Alert.alert('Помилка', 'Будь-ласка введіть коректну назву речовини.');
+        setIsLoading(false);
         return;
       }
       query = encodeURIComponent(searchNameQuery);
@@ -104,6 +168,7 @@ const openResultsModal = async () => {
     case 'haz':
       if (!searchHazQuery.trim()) {
         Alert.alert('Помилка', 'Будь-ласка введіть коректний HAZ-код.');
+        setIsLoading(false);
         return;
       }
       query = encodeURIComponent(searchHazQuery);
@@ -112,6 +177,7 @@ const openResultsModal = async () => {
     case 'imdg':
       if (!searchImdgQuery.trim()) {
         Alert.alert('Помилка', 'Будь-ласка введіть коректний IMDG-код.');
+        setIsLoading(false);
         return;
       }
       query = encodeURIComponent(searchImdgQuery);
@@ -120,6 +186,7 @@ const openResultsModal = async () => {
     case 'formula':
       if (!searchFormulaQuery.trim()) {
         Alert.alert('Помилка', 'Будь-ласка введіть коректну формулу.');
+        setIsLoading(false);
         return;
       }
       query = encodeURIComponent(searchFormulaQuery);
@@ -127,11 +194,11 @@ const openResultsModal = async () => {
       break;
     default:
       Alert.alert('Помилка', 'Введено некоректні дані.');
+      setIsLoading(false);
       return;
   }
 
   try {
-    console.log(`Sending request to: ${url}`); // Log the URL for debugging
     const response = await fetch(url, {
       method: 'GET',
       headers: {
@@ -139,61 +206,52 @@ const openResultsModal = async () => {
       },
     });
 
-    console.log(`Response status: ${response.status}`);
-    console.log(`Response headers:`, response.headers);
-
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Error response body: ${errorText}`);
-      throw new Error(`Network response was not ok (${response.status}): ${errorText}`);
+      throw new Error(`Network response was not ok (${response.status})`);
     }
 
     const result = await response.json();
-    console.log('Received result:', result);
     setSelectedSubstance(result);
     setResultsModalVisible(true);
     setSearchModalVisible(false);
-  } catch (error: unknown) {
-    if (error instanceof Error) {
-      console.error('Error details:', error);
-      Alert.alert('Помилка', `Даних не знайдено.`);
-    } else {
-      console.error('Unknown error:', error);
-      Alert.alert('Помилка', 'Сталась невідома помилка.');
-    }
+  } catch (error) {
+    console.error('Error:', error);
+    Alert.alert('Помилка', 'Даних не знайдено.');
+  } finally {
+    setIsLoading(false);
   }
 };
 
-  
+const closeResultsModal = () => {
+  setResultsModalVisible(false);
+  setSelectedSubstance(null);
+  setCurrentIndex(0);
+  setSubstanceIds([]);
+};
 
-  const closeResultsModal = () => {
-    setResultsModalVisible(false);
-    setSelectedSubstance(null);
-  };
-
-  return (
-    <ThemedView style={styles.mainContainer}>
-      <ThemedView style={styles.innerContainer}>
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.button} onPress={() => openSearchModal('name')}>
-            <ThemedText style={styles.buttonText}>Пошук за назвою</ThemedText>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.button} onPress={() => openSearchModal('oon')}>
-            <ThemedText style={styles.buttonText}>Пошук за ООН - номером</ThemedText>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.button} onPress={() => openSearchModal('haz')}>
-            <ThemedText style={styles.buttonText}>Пошук за HAZ кодом</ThemedText>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.button} onPress={() => openSearchModal('imdg')}>
-            <ThemedText style={styles.buttonText}>Пошук за IMDG кодом</ThemedText>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.button} onPress={() => openSearchModal('formula')}>
-            <ThemedText style={styles.buttonText}>Пошук за формулою</ThemedText>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.button} onPress={() => openSearchModal('name')}>
-            <ThemedText style={styles.buttonText}>Довідник речовин</ThemedText>
-          </TouchableOpacity>
-        </View>
+return (
+  <ThemedView style={styles.mainContainer}>
+    <ThemedView style={styles.innerContainer}>
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity style={styles.button} onPress={() => openSearchModal('name')}>
+          <ThemedText style={styles.buttonText}>Пошук за назвою</ThemedText>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.button} onPress={() => openSearchModal('oon')}>
+          <ThemedText style={styles.buttonText}>Пошук за ООН - номером</ThemedText>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.button} onPress={() => openSearchModal('haz')}>
+          <ThemedText style={styles.buttonText}>Пошук за HAZ кодом</ThemedText>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.button} onPress={() => openSearchModal('imdg')}>
+          <ThemedText style={styles.buttonText}>Пошук за IMDG кодом</ThemedText>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.button} onPress={() => openSearchModal('formula')}>
+          <ThemedText style={styles.buttonText}>Пошук за формулою</ThemedText>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.button} onPress={() => openSearchModal('all')}>
+          <ThemedText style={styles.buttonText}>Довідник речовин</ThemedText>
+        </TouchableOpacity>
+      </View>
         {/* Search Modal */}
         <Modal visible={searchModalVisible} animationType="slide" transparent={true}>
   <View style={styles.modalSearchContainer}>
@@ -236,7 +294,8 @@ const openResultsModal = async () => {
           value={searchFormulaQuery}
           onChangeText={setSearchFormulaQuery}
         />
-      ) : null}
+      ) : 
+      null}
 
       <TouchableOpacity style={styles.searchButton} onPress={openResultsModal}>
         <ThemedText style={styles.searchButtonText}>Пошук</ThemedText>
@@ -362,15 +421,47 @@ const openResultsModal = async () => {
               <Text style={styles.modalText}>Інформації про речовину не знайдено</Text>
             )}
           </ScrollView>
-              <TouchableOpacity style={styles.closeButton} onPress={closeResultsModal}>
-                <ThemedText style={styles.buttonText}>Закрити</ThemedText>
-              </TouchableOpacity>
-            </View>
+          {searchBy === 'all' && substanceIds.length > 0 && (
+              <View style={styles.navigationContainer}>
+                <TouchableOpacity 
+                  style={[
+                    styles.navigationButton,
+                    currentIndex === 0 && styles.navigationButtonDisabled
+                  ]}
+                  onPress={handlePrevious}
+                  disabled={currentIndex === 0}
+                >
+                  <ThemedText style={styles.navigationButtonText}>Попередня</ThemedText>
+                </TouchableOpacity>
+
+                <View style={styles.pageIndicatorContainer}>
+                  <Text style={styles.pageIndicator}>
+                    {`${currentIndex + 1} / ${substanceIds.length}`}
+                  </Text>
+                </View>
+
+                <TouchableOpacity 
+                  style={[
+                    styles.navigationButton,
+                    currentIndex === substanceIds.length - 1 && styles.navigationButtonDisabled
+                  ]}
+                  onPress={handleNext}
+                  disabled={currentIndex === substanceIds.length - 1}
+                >
+                  <ThemedText style={styles.navigationButtonText}>Наступна</ThemedText>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            <TouchableOpacity style={styles.closeButton} onPress={closeResultsModal}>
+              <ThemedText style={styles.closeButtonText}>Закрити</ThemedText>
+            </TouchableOpacity>
           </View>
-        </Modal>
-      </ThemedView>
+        </View>
+      </Modal>
     </ThemedView>
-  );
+  </ThemedView>
+);
 };
 
 const styles = StyleSheet.create({
@@ -523,6 +614,51 @@ const styles = StyleSheet.create({
   },
   italicText: {
     fontStyle: 'italic',
+  },
+  allSubstancesContainer: {
+    alignItems: 'center',
+    width: '100%',
+  },
+  navigationContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    marginBottom: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#ddd',
+  },
+  navigationButton: {
+    backgroundColor: '#007BFF',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+    minWidth: 100,
+  },
+  navigationButtonDisabled: {
+    backgroundColor: '#cccccc',
+  },
+  navigationButtonText: {
+    color: '#fff',
+    textAlign: 'center',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  pageIndicatorContainer: {
+    backgroundColor: '#f8f9fa',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  pageIndicator: {
+    fontSize: 14,
+    color: '#666666',
+    fontWeight: 'bold',
+  },
+  scrollView: {
+    flex: 1,
   },
 });
 

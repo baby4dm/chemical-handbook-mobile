@@ -28,7 +28,9 @@
         "INTERNET",
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE"
+        "WRITE_EXTERNAL_STORAGE",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
       ],
       "package": "com.yourcompany.chemicalhandbookmobile"
     },
@@ -43,6 +45,11 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "3b6a86cf-dd9d-472c-a930-da823d993741"
+      }
     }
   }
 }
