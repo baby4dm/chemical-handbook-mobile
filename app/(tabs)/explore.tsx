@@ -7,10 +7,13 @@ import {
   TouchableOpacity,
   Alert,
   ScrollView,
-  Text
+  Text,
+  Animated,
+  Pressable
 } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { Ionicons } from '@expo/vector-icons';
 
 
 
