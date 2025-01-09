@@ -12,8 +12,9 @@ import {
   Dimensions,
   ActivityIndicator,
 } from 'react-native';
-import { Search, FileText, Database, Scan, Info, Beaker } from 'lucide-react-native';
+import { Search, FileText, Database, Scan, Info, Beaker, Bookmark } from 'lucide-react-native';
 import { getHistory, addToHistory, clearHistory, HistoryItem } from '@/components/historyStorage';
+import { addToBookmarks, removeFromBookmarks, isSubstanceBookmarked } from '@/components/bookmarksStorage';
 
 
 
@@ -73,6 +74,7 @@ const ExploreScreen = () => {
   const [selectedSubstance, setSelectedSubstance] = useState<Substance | null>(null);
   const [resultsModalVisible, setResultsModalVisible] = useState(false);
   const [recentSubstances, setRecentSubstances] = useState<HistoryItem[]>([]);
+  const [isBookmarked, setIsBookmarked] = useState(false);
 
   useEffect(() => {
     loadHistory();
@@ -87,7 +89,6 @@ const ExploreScreen = () => {
       setRecentSubstances(history);
     };
   };
-
 
   const searchCategories = [
     { id: 'name', title: 'За назвою', Icon: FileText },
@@ -200,7 +201,7 @@ const ExploreScreen = () => {
               </TouchableOpacity>
             )}
           </View>
-
+  
           <View style={styles.modalButtons}>
             <TouchableOpacity
               style={[styles.modalButton, styles.cancelButton]}
@@ -211,6 +212,7 @@ const ExploreScreen = () => {
             >
               <Text style={styles.cancelButtonText}>Скасувати</Text>
             </TouchableOpacity>
+            
             <TouchableOpacity
               style={[styles.modalButton, styles.searchButton]}
               onPress={handleSearch}
@@ -228,233 +230,272 @@ const ExploreScreen = () => {
     </Modal>
   );
 
+  useEffect(() => {
+    const checkBookmarkStatus = async () => {
+      if (selectedSubstance) {
+        const status = await isSubstanceBookmarked(selectedSubstance.oonNumber);
+        setIsBookmarked(status);
+      }
+    };
+    checkBookmarkStatus();
+  }, [selectedSubstance]);
 
-const renderResultsModal = () => (
-  <Modal
-    visible={resultsModalVisible}
-    animationType="slide"
-    transparent={true}
-    onRequestClose={() => setResultsModalVisible(false)}
-  >
-    <View style={styles.modalContainer}>
-      <View style={styles.modalContent}>
-        <ScrollView>
-          {selectedSubstance ? (
-            <View style={styles.infoCard}>
-              <Text style={styles.modalTitle}>Інформація про речовину</Text>
-
-              <Text style={styles.modalText}>
-                <Text style={styles.boldText}>Назва: </Text>
-                <Text style={styles.italicText}>{selectedSubstance.name}</Text>
-              </Text>
-
-              <Text style={styles.modalText}>
-                <Text style={styles.boldText}>Формула: </Text>
-                <Text style={styles.italicText}>{selectedSubstance.formula}</Text>
-              </Text>
-
-              <Text style={styles.modalText}>
-                <Text style={styles.boldText}>Опис: </Text>
-                <Text style={styles.italicText}>{selectedSubstance.description}</Text>
-              </Text>
-
-              <Text style={styles.modalText}>
-                <Text style={styles.boldText}>OOH номер: </Text>
-                <Text style={styles.italicText}>{selectedSubstance.oonNumber}</Text>
-              </Text>
-
-              <Text style={styles.modalText}>
-                <Text style={styles.boldText}>Число небезпеки: </Text>
-                <Text style={styles.italicText}>{selectedSubstance.dangerousNumber}</Text>
-              </Text>
-
-              <Text style={styles.modalText}>
-                <Text style={styles.boldText}>IMDG код: </Text>
-                <Text style={styles.italicText}>{selectedSubstance.imdg}</Text>
-              </Text>
-
-              <Text style={styles.modalText}>
-                <Text style={styles.boldText}>HAZ код: </Text>
-                <Text style={styles.italicText}>{selectedSubstance.haz}</Text>
-              </Text>
-
-              {/* Physical Properties */}
-              <Text style={styles.modalSubtitle}>Фізичні властивості</Text>
-              
-              <Text style={styles.modalText}>
-                <Text style={styles.boldText}>Агрегатний стан: </Text>
-                <Text style={styles.italicText}>{selectedSubstance.aggregationState}</Text>
-              </Text>
-
-              <Text style={styles.modalText}>
-                <Text style={styles.boldText}>Густина за повітрям: </Text>
-                <Text style={styles.italicText}>{selectedSubstance.densityAir}</Text>
-              </Text>
-
-              <Text style={styles.modalText}>
-                <Text style={styles.boldText}>Густина за водою: </Text>
-                <Text style={styles.italicText}>{selectedSubstance.densityWater}</Text>
-              </Text>
-
-              <Text style={styles.modalText}>
-                <Text style={styles.boldText}>Розчинність: </Text>
-                <Text style={styles.italicText}>{selectedSubstance.solubility}</Text>
-              </Text>
-
-              <Text style={styles.modalText}>
-                <Text style={styles.boldText}>Молекулярна вага: </Text>
-                <Text style={styles.italicText}>{selectedSubstance.molecularWeight}</Text>
-              </Text>
-
-              <Text style={styles.modalText}>
-                <Text style={styles.boldText}>Клас горючості: </Text>
-                <Text style={styles.italicText}>{selectedSubstance.flammabilityClass}</Text>
-              </Text>
-
-              {/* Temperature Properties */}
-              <Text style={styles.modalSubtitle}>Температурні властивості</Text>
-
-              <Text style={styles.modalText}>
-                <Text style={styles.boldText}>Температура кипіння: </Text>
-                <Text style={styles.italicText}>{selectedSubstance.temperatureProperties.boilingPoint}°C</Text>
-              </Text>
-
-              <Text style={styles.modalText}>
-                <Text style={styles.boldText}>Температура замерзання: </Text>
-                <Text style={styles.italicText}>{selectedSubstance.temperatureProperties.freezePoint}°C</Text>
-              </Text>
-
-              <Text style={styles.modalText}>
-                <Text style={styles.boldText}>Температура плавлення: </Text>
-                <Text style={styles.italicText}>{selectedSubstance.temperatureProperties.meltingPoint}°C</Text>
-              </Text>
-
-              <Text style={styles.modalText}>
-                <Text style={styles.boldText}>Температура спалахування: </Text>
-                <Text style={styles.italicText}>{selectedSubstance.temperatureProperties.flashPoint}°C</Text>
-              </Text>
-
-              {/* Hazard Information */}
-              <Text style={styles.modalSubtitle}>Інформація про небезпеку</Text>
-
-              <Text style={styles.modalText}>
-                <Text style={styles.boldText}>Загальна небезпека: </Text>
-                <Text style={styles.italicText}>{selectedSubstance.generalDanger}</Text>
-              </Text>
-
-              <Text style={styles.modalText}>
-                <Text style={styles.boldText}>Небезпека з водою: </Text>
-                <Text style={styles.italicText}>{selectedSubstance.waterDanger}</Text>
-              </Text>
-
-              <Text style={styles.modalText}>
-                <Text style={styles.boldText}>Стійкість тари: </Text>
-                <Text style={styles.italicText}>{selectedSubstance.container}</Text>
-              </Text>
-
-              {/* Health Effects */}
-              <Text style={styles.modalSubtitle}>Вплив на здоров'я</Text>
-
-              <Text style={styles.modalText}>
-                <Text style={styles.boldText}>Летальна доза: </Text>
-                <Text style={styles.italicText}>{selectedSubstance.healthInvolve.lethal}</Text>
-              </Text>
-
-              <Text style={styles.modalText}>
-                <Text style={styles.boldText}>Гранично допустима концентрація: </Text>
-                <Text style={styles.italicText}>{selectedSubstance.healthInvolve.limitConcentration}</Text>
-              </Text>
-
-              <Text style={styles.modalText}>
-                <Text style={styles.boldText}>Шляхи впливу: </Text>
-                <Text style={styles.italicText}>{selectedSubstance.healthInvolve.involveWays}</Text>
-              </Text>
-
-              <Text style={styles.modalText}>
-                <Text style={styles.boldText}>Симптоми: </Text>
-                <Text style={styles.italicText}>{selectedSubstance.healthInvolve.symptoms}</Text>
-              </Text>
-
-              <Text style={styles.modalText}>
-                <Text style={styles.boldText}>Вплив на органи: </Text>
-                <Text style={styles.italicText}>{selectedSubstance.healthInvolve.organImpacts}</Text>
-              </Text>
-
-              {/* Protection Recommendations */}
-              <Text style={styles.modalSubtitle}>Рекомендації щодо захисту</Text>
-
-              <Text style={styles.modalText}>
-                <Text style={styles.boldText}>Захист дихання: </Text>
-                <Text style={styles.italicText}>{selectedSubstance.respirationRecommendation}</Text>
-              </Text>
-
-              <Text style={styles.modalText}>
-                <Text style={styles.boldText}>Захист шкіри: </Text>
-                <Text style={styles.italicText}>{selectedSubstance.skinDefenseRecommendation}</Text>
-              </Text>
-
-              {/* First Aid */}
-              <Text style={styles.modalSubtitle}>Перша допомога</Text>
-
-              <Text style={styles.modalText}>
-                <Text style={styles.boldText}>Очі: </Text>
-                <Text style={styles.italicText}>{selectedSubstance.firstAid.eyes}</Text>
-              </Text>
-
-              <Text style={styles.modalText}>
-                <Text style={styles.boldText}>Шкіра: </Text>
-                <Text style={styles.italicText}>{selectedSubstance.firstAid.skin}</Text>
-              </Text>
-
-              <Text style={styles.modalText}>
-                <Text style={styles.boldText}>При вдиханні: </Text>
-                <Text style={styles.italicText}>{selectedSubstance.firstAid.inhalation}</Text>
-              </Text>
-
-              <Text style={styles.modalText}>
-                <Text style={styles.boldText}>При ковтанні: </Text>
-                <Text style={styles.italicText}>{selectedSubstance.firstAid.swallowing}</Text>
-              </Text>
-
-              {/* Danger Square */}
-              <Text style={styles.modalSubtitle}>Квадрат небезпеки</Text>
-
-              <Text style={styles.modalText}>
-                <Text style={styles.boldText}>Здоров'я: </Text>
-                <Text style={styles.italicText}>{selectedSubstance.dangerSquare.health}</Text>
-              </Text>
-
-              <Text style={styles.modalText}>
-                <Text style={styles.boldText}>Пожежна: </Text>
-                <Text style={styles.italicText}>{selectedSubstance.dangerSquare.fire}</Text>
-              </Text>
-
-              <Text style={styles.modalText}>
-                <Text style={styles.boldText}>Хімічна: </Text>
-                <Text style={styles.italicText}>{selectedSubstance.dangerSquare.chemistry}</Text>
-              </Text>
-
-              <Text style={styles.modalText}>
-                <Text style={styles.boldText}>Примітки: </Text>
-                <Text style={styles.italicText}>{selectedSubstance.dangerSquare.other}</Text>
-              </Text>
-
-            </View>
-          ) : (
-            <Text style={styles.modalText}>Інформацію не знайдено</Text>
-          )}
-        </ScrollView>
-
-        <TouchableOpacity
-          style={styles.closeButton}
-          onPress={() => setResultsModalVisible(false)}
-        >
-          <Text style={styles.closeButtonText}>Закрити</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  </Modal>
-);
+  const renderResultsModal = () => {
+    const handleBookmarkToggle = async () => {
+      if (!selectedSubstance) return;
+    
+      try {
+        if (isBookmarked) {
+          await removeFromBookmarks(selectedSubstance.oonNumber);
+          setIsBookmarked(false);
+        } else {
+          await addToBookmarks(selectedSubstance);
+          setIsBookmarked(true);
+        }
+      } catch (error) {
+        Alert.alert('Помилка', 'Не вдалося оновити закладки');
+      }
+    };
+  
+    return (
+      <Modal
+        visible={resultsModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setResultsModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <ScrollView>
+              {selectedSubstance ? (
+                <View style={styles.infoCard}>
+                <View style={styles.cardHeader}>
+                  <Text style={styles.modalTitle}>Інформація про речовину</Text>
+                  <TouchableOpacity
+  style={styles.bookmarkButton}
+  onPress={handleBookmarkToggle}
+>
+  {isBookmarked ? (
+    <Bookmark size={24} color="#1a73e8" fill="#1a73e8" />
+  ) : (
+    <Bookmark size={24} color="#1a73e8" />
+  )}
+</TouchableOpacity>
+                </View>
+  
+                  <Text style={styles.modalText}>
+                    <Text style={styles.boldText}>Назва: </Text>
+                    <Text style={styles.italicText}>{selectedSubstance.name}</Text>
+                  </Text>
+  
+                  <Text style={styles.modalText}>
+                    <Text style={styles.boldText}>Формула: </Text>
+                    <Text style={styles.italicText}>{selectedSubstance.formula}</Text>
+                  </Text>
+  
+                  <Text style={styles.modalText}>
+                    <Text style={styles.boldText}>Опис: </Text>
+                    <Text style={styles.italicText}>{selectedSubstance.description}</Text>
+                  </Text>
+  
+                  <Text style={styles.modalText}>
+                    <Text style={styles.boldText}>OOH номер: </Text>
+                    <Text style={styles.italicText}>{selectedSubstance.oonNumber}</Text>
+                  </Text>
+  
+                  <Text style={styles.modalText}>
+                    <Text style={styles.boldText}>Число небезпеки: </Text>
+                    <Text style={styles.italicText}>{selectedSubstance.dangerousNumber}</Text>
+                  </Text>
+  
+                  <Text style={styles.modalText}>
+                    <Text style={styles.boldText}>IMDG код: </Text>
+                    <Text style={styles.italicText}>{selectedSubstance.imdg}</Text>
+                  </Text>
+  
+                  <Text style={styles.modalText}>
+                    <Text style={styles.boldText}>HAZ код: </Text>
+                    <Text style={styles.italicText}>{selectedSubstance.haz}</Text>
+                  </Text>
+  
+                  {/* Physical Properties */}
+                  <Text style={styles.modalSubtitle}>Фізичні властивості</Text>
+                  
+                  <Text style={styles.modalText}>
+                    <Text style={styles.boldText}>Агрегатний стан: </Text>
+                    <Text style={styles.italicText}>{selectedSubstance.aggregationState}</Text>
+                  </Text>
+  
+                  <Text style={styles.modalText}>
+                    <Text style={styles.boldText}>Густина за повітрям: </Text>
+                    <Text style={styles.italicText}>{selectedSubstance.densityAir}</Text>
+                  </Text>
+  
+                  <Text style={styles.modalText}>
+                    <Text style={styles.boldText}>Густина за водою: </Text>
+                    <Text style={styles.italicText}>{selectedSubstance.densityWater}</Text>
+                  </Text>
+  
+                  <Text style={styles.modalText}>
+                    <Text style={styles.boldText}>Розчинність: </Text>
+                    <Text style={styles.italicText}>{selectedSubstance.solubility}</Text>
+                  </Text>
+  
+                  <Text style={styles.modalText}>
+                    <Text style={styles.boldText}>Молекулярна вага: </Text>
+                    <Text style={styles.italicText}>{selectedSubstance.molecularWeight}</Text>
+                  </Text>
+  
+                  <Text style={styles.modalText}>
+                    <Text style={styles.boldText}>Клас горючості: </Text>
+                    <Text style={styles.italicText}>{selectedSubstance.flammabilityClass}</Text>
+                  </Text>
+  
+                  {/* Temperature Properties */}
+                  <Text style={styles.modalSubtitle}>Температурні властивості</Text>
+  
+                  <Text style={styles.modalText}>
+                    <Text style={styles.boldText}>Температура кипіння: </Text>
+                    <Text style={styles.italicText}>{selectedSubstance.temperatureProperties.boilingPoint}°C</Text>
+                  </Text>
+  
+                  <Text style={styles.modalText}>
+                    <Text style={styles.boldText}>Температура замерзання: </Text>
+                    <Text style={styles.italicText}>{selectedSubstance.temperatureProperties.freezePoint}°C</Text>
+                  </Text>
+  
+                  <Text style={styles.modalText}>
+                    <Text style={styles.boldText}>Температура плавлення: </Text>
+                    <Text style={styles.italicText}>{selectedSubstance.temperatureProperties.meltingPoint}°C</Text>
+                  </Text>
+  
+                  <Text style={styles.modalText}>
+                    <Text style={styles.boldText}>Температура спалахування: </Text>
+                    <Text style={styles.italicText}>{selectedSubstance.temperatureProperties.flashPoint}°C</Text>
+                  </Text>
+  
+                  {/* Hazard Information */}
+                  <Text style={styles.modalSubtitle}>Інформація про небезпеку</Text>
+  
+                  <Text style={styles.modalText}>
+                    <Text style={styles.boldText}>Загальна небезпека: </Text>
+                    <Text style={styles.italicText}>{selectedSubstance.generalDanger}</Text>
+                  </Text>
+  
+                  <Text style={styles.modalText}>
+                    <Text style={styles.boldText}>Небезпека з водою: </Text>
+                    <Text style={styles.italicText}>{selectedSubstance.waterDanger}</Text>
+                  </Text>
+  
+                  <Text style={styles.modalText}>
+                    <Text style={styles.boldText}>Стійкість тари: </Text>
+                    <Text style={styles.italicText}>{selectedSubstance.container}</Text>
+                  </Text>
+  
+                  {/* Health Effects */}
+                  <Text style={styles.modalSubtitle}>Вплив на здоров'я</Text>
+  
+                  <Text style={styles.modalText}>
+                    <Text style={styles.boldText}>Летальна доза: </Text>
+                    <Text style={styles.italicText}>{selectedSubstance.healthInvolve.lethal}</Text>
+                  </Text>
+  
+                  <Text style={styles.modalText}>
+                    <Text style={styles.boldText}>Гранично допустима концентрація: </Text>
+                    <Text style={styles.italicText}>{selectedSubstance.healthInvolve.limitConcentration}</Text>
+                  </Text>
+  
+                  <Text style={styles.modalText}>
+                    <Text style={styles.boldText}>Шляхи впливу: </Text>
+                    <Text style={styles.italicText}>{selectedSubstance.healthInvolve.involveWays}</Text>
+                  </Text>
+  
+                  <Text style={styles.modalText}>
+                    <Text style={styles.boldText}>Симптоми: </Text>
+                    <Text style={styles.italicText}>{selectedSubstance.healthInvolve.symptoms}</Text>
+                  </Text>
+  
+                  <Text style={styles.modalText}>
+                    <Text style={styles.boldText}>Вплив на органи: </Text>
+                    <Text style={styles.italicText}>{selectedSubstance.healthInvolve.organImpacts}</Text>
+                  </Text>
+  
+                  {/* Protection Recommendations */}
+                  <Text style={styles.modalSubtitle}>Рекомендації щодо захисту</Text>
+  
+                  <Text style={styles.modalText}>
+                    <Text style={styles.boldText}>Захист дихання: </Text>
+                    <Text style={styles.italicText}>{selectedSubstance.respirationRecommendation}</Text>
+                  </Text>
+  
+                  <Text style={styles.modalText}>
+                    <Text style={styles.boldText}>Захист шкіри: </Text>
+                    <Text style={styles.italicText}>{selectedSubstance.skinDefenseRecommendation}</Text>
+                  </Text>
+  
+                  {/* First Aid */}
+                  <Text style={styles.modalSubtitle}>Перша допомога</Text>
+  
+                  <Text style={styles.modalText}>
+                    <Text style={styles.boldText}>Очі: </Text>
+                    <Text style={styles.italicText}>{selectedSubstance.firstAid.eyes}</Text>
+                  </Text>
+  
+                  <Text style={styles.modalText}>
+                    <Text style={styles.boldText}>Шкіра: </Text>
+                    <Text style={styles.italicText}>{selectedSubstance.firstAid.skin}</Text>
+                  </Text>
+  
+                  <Text style={styles.modalText}>
+                    <Text style={styles.boldText}>При вдиханні: </Text>
+                    <Text style={styles.italicText}>{selectedSubstance.firstAid.inhalation}</Text>
+                  </Text>
+  
+                  <Text style={styles.modalText}>
+                    <Text style={styles.boldText}>При ковтанні: </Text>
+                    <Text style={styles.italicText}>{selectedSubstance.firstAid.swallowing}</Text>
+                  </Text>
+  
+                  {/* Danger Square */}
+                  <Text style={styles.modalSubtitle}>Квадрат небезпеки</Text>
+  
+                  <Text style={styles.modalText}>
+                    <Text style={styles.boldText}>Здоров'я: </Text>
+                    <Text style={styles.italicText}>{selectedSubstance.dangerSquare.health}</Text>
+                  </Text>
+  
+                  <Text style={styles.modalText}>
+                    <Text style={styles.boldText}>Пожежна: </Text>
+                    <Text style={styles.italicText}>{selectedSubstance.dangerSquare.fire}</Text>
+                  </Text>
+  
+                  <Text style={styles.modalText}>
+                    <Text style={styles.boldText}>Хімічна: </Text>
+                    <Text style={styles.italicText}>{selectedSubstance.dangerSquare.chemistry}</Text>
+                  </Text>
+  
+                  <Text style={styles.modalText}>
+                    <Text style={styles.boldText}>Примітки: </Text>
+                    <Text style={styles.italicText}>{selectedSubstance.dangerSquare.other}</Text>
+                  </Text>
+  
+                </View>
+              ) : (
+                <Text style={styles.modalText}>Інформацію не знайдено</Text>
+              )}
+            </ScrollView>
+  
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setResultsModalVisible(false)}
+            >
+              <Text style={styles.closeButtonText}>Закрити</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
 
 return (
   <SafeAreaView style={styles.container}>
@@ -753,6 +794,16 @@ const styles = StyleSheet.create({
     color: '#666',
     marginTop: 2,
   },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8, // зменшено з 16 до 8
+  },
+  bookmarkButton: {
+    paddingBottom: 10,
+    paddingRight: 1,
+  }
 });
 
 export default ExploreScreen;
