@@ -1,26 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
-  TextInput,
   View,
-  Modal,
-  TouchableOpacity,
-  Alert,
-  ScrollView,
+  TextInput,
   Text,
-  Animated,
-  Pressable
+  TouchableOpacity,
+  ScrollView,
+  Modal,
+  Alert,
+  SafeAreaView,
+  Dimensions,
+  ActivityIndicator,
 } from 'react-native';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { Ionicons } from '@expo/vector-icons';
+import { Search, FileText, Database, Scan, Info, Beaker } from 'lucide-react-native';
+import { getHistory, addToHistory, clearHistory, HistoryItem } from '@/components/historyStorage';
 
 
 
 interface Substance {
-  oon: number;
+  oonNumber: number;
   name: string;
-  code: string;
+  dangerousNumber: string;
   formula: string;
   description: string;
   aggregationState: string;
@@ -40,7 +40,7 @@ interface Substance {
     boilingPoint: number;
     freezePoint: number;
     meltingPoint: number;
-    flashPoint: number; 
+    flashPoint: number;
   };
   healthInvolve: {
     lethal: number;
@@ -54,7 +54,7 @@ interface Substance {
     skin: string;
     inhalation: string;
     swallowing: string;
-  }
+  };
   dangerSquare: {
     health: number;
     fire: number;
@@ -63,348 +63,247 @@ interface Substance {
   };
 }
 
-const SubstancesScreen: React.FC = () => {
-const [searchNameQuery, setSearchNameQuery] = useState('');
-const [oon, setOon] = useState('');
-const [searchHazQuery, setSearchHazQuery] = useState(''); // HAZ код
-const [searchImdgQuery, setSearchImdgQuery] = useState(''); // IMDG код
-const [searchFormulaQuery, setSearchFormulaQuery] = useState(''); // Хімічна формула
-const [selectedSubstance, setSelectedSubstance] = useState<Substance | null>(null);
-const [searchModalVisible, setSearchModalVisible] = useState(false);
-const [resultsModalVisible, setResultsModalVisible] = useState(false);
-const [substanceIds, setSubstanceIds] = useState<number[]>([]);
-const [isLoading, setIsLoading] = useState(false);
-const [currentIndex, setCurrentIndex] = useState(0);
+const SCREEN_WIDTH = Dimensions.get('window').width;
+
+const ExploreScreen = () => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchModalVisible, setSearchModalVisible] = useState(false);
+  const [currentSearchType, setCurrentSearchType] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedSubstance, setSelectedSubstance] = useState<Substance | null>(null);
+  const [resultsModalVisible, setResultsModalVisible] = useState(false);
+  const [recentSubstances, setRecentSubstances] = useState<HistoryItem[]>([]);
+
+  useEffect(() => {
+    loadHistory();
+  }, []);
   
+  const loadHistory = async () => {
+    const history = await getHistory();
+    setRecentSubstances(history);
+    const loadHistory = async () => {
+      const history = await getHistory();
+      console.log('Loaded history:', history);
+      setRecentSubstances(history);
+    };
+  };
 
-// Оновлення стану для 'searchBy', щоб включити нові варіанти пошуку
-const [searchBy, setSearchBy] = useState<'name' | 'oon' | 'haz' | 'imdg' | 'formula' | 'all' | null>(null);
 
-const fetchSubstanceIds = async () => {
-  setIsLoading(true);
-  try {
-    const url = `http://10.138.134.232:8080/substances/ids`;
-    const response = await fetch(url);
-    
-    if (!response.ok) {
-      throw new Error(`Network response was not ok (${response.status})`);
-    }
-    
-    const ids = await response.json();
-    setSubstanceIds(ids);
-    
-    if (ids.length > 0) {
-      setCurrentIndex(0);
-      await fetchSubstanceById(ids[0]);
-    }
-  } catch (error) {
-    console.error('Error fetching substance IDs:', error);
-    Alert.alert('Помилка', 'Не вдалося отримати список речовин');
-  } finally {
-    setIsLoading(false);
-  }
-};
+  const searchCategories = [
+    { id: 'name', title: 'За назвою', Icon: FileText },
+    { id: 'oon', title: 'За ООН номером', Icon: Database },
+    { id: 'formula', title: 'За формулою', Icon: Beaker }, // перемістили в основний масив
+    { id: 'haz', title: 'За HAZ кодом', Icon: Info },
+    { id: 'imdg', title: 'За IMDG кодом', Icon: Scan },
+  ]
 
-const fetchSubstanceById = async (oon: number) => {
-  setIsLoading(true);
-  try {
-    const url = `http://10.138.134.232:8080/substances/oon-number/${oon}`;
-    const response = await fetch(url);
-    
-    if (!response.ok) {
-      throw new Error(`Network response was not ok (${response.status})`);
-    }
-    
-    const substance = await response.json();
-    setSelectedSubstance(substance);
-    setResultsModalVisible(true);
-  } catch (error) {
-    console.error('Error fetching substance:', error);
-    Alert.alert('Помилка', 'Не вдалося отримати інформацію про речовину');
-  } finally {
-    setIsLoading(false);
-  }
-};
-
-const handleNext = () => {
-  if (currentIndex < substanceIds.length - 1) {
-    const nextIndex = currentIndex + 1;
-    setCurrentIndex(nextIndex);
-    fetchSubstanceById(substanceIds[nextIndex]);
-  }
-};
-
-const handlePrevious = () => {
-  if (currentIndex > 0) {
-    const prevIndex = currentIndex - 1;
-    setCurrentIndex(prevIndex);
-    fetchSubstanceById(substanceIds[prevIndex]);
-  }
-};
-
-const openSearchModal = (type: 'name' | 'oon' | 'haz' | 'imdg' | 'formula' | 'all') => {
-  setSearchBy(type);
-  if (type === 'all') {
-    fetchSubstanceIds();
-  } else {
-    setSearchNameQuery('');
-    setOon('');
-    setSearchHazQuery('');
-    setSearchImdgQuery('');
-    setSearchFormulaQuery('');
-    setSearchModalVisible(true);
-  }
-};
-
-const closeSearchModal = () => {
-  setSearchModalVisible(false);
-  setSearchNameQuery('');
-  setOon('');
-  setSearchHazQuery('');
-  setSearchImdgQuery('');
-  setSearchFormulaQuery('');
-};
-
-const openResultsModal = async () => {
-  setIsLoading(true);
-  let url = '';
-  let query = '';
-
-  switch (searchBy) {
-    case 'oon':
-      if (!oon.trim()) {
-        Alert.alert('Помилка', 'Будь-ласка введіть коректний ООН-номер.');
-        setIsLoading(false);
-        return;
-      }
-      url = `http://10.138.134.232:8080/substances/oon-number/${oon}`;
-      break;
-    case 'name':
-      if (!searchNameQuery.trim()) {
-        Alert.alert('Помилка', 'Будь-ласка введіть коректну назву речовини.');
-        setIsLoading(false);
-        return;
-      }
-      query = encodeURIComponent(searchNameQuery);
-      url = `http://10.138.134.232:8080/substances/${query}`;
-      break;
-    case 'haz':
-      if (!searchHazQuery.trim()) {
-        Alert.alert('Помилка', 'Будь-ласка введіть коректний HAZ-код.');
-        setIsLoading(false);
-        return;
-      }
-      query = encodeURIComponent(searchHazQuery);
-      url = `http://10.138.134.232:8080/substances/haz/${query}`;
-      break;
-    case 'imdg':
-      if (!searchImdgQuery.trim()) {
-        Alert.alert('Помилка', 'Будь-ласка введіть коректний IMDG-код.');
-        setIsLoading(false);
-        return;
-      }
-      query = encodeURIComponent(searchImdgQuery);
-      url = `http://10.138.134.232:8080/substances/imdg/${query}`;
-      break;
-    case 'formula':
-      if (!searchFormulaQuery.trim()) {
-        Alert.alert('Помилка', 'Будь-ласка введіть коректну формулу.');
-        setIsLoading(false);
-        return;
-      }
-      query = encodeURIComponent(searchFormulaQuery);
-      url = `http://10.138.134.232:8080/substances/formula/${query}`;
-      break;
-    default:
-      Alert.alert('Помилка', 'Введено некоректні дані.');
-      setIsLoading(false);
+  const handleSearch = async () => {
+    if (!searchQuery.trim() && currentSearchType !== 'all') {
+      Alert.alert('Помилка', 'Введіть пошуковий запит');
       return;
-  }
-
-  try {
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'accept': '*/*',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Network response was not ok (${response.status})`);
     }
+  
+    setIsLoading(true);
+    try {
+      let url = `http://10.138.134.232:8080/substances`;
+      
+      switch (currentSearchType) {
+        case 'name':
+          url += `/${encodeURIComponent(searchQuery)}`;
+          break;
+        case 'oon':
+          url += `/oon-number/${searchQuery}`;
+          break;
+        case 'haz':
+          url += `/haz/${encodeURIComponent(searchQuery)}`;
+          break;
+        case 'imdg':
+          url += `/imdg/${encodeURIComponent(searchQuery)}`;
+          break;
+        case 'formula':
+          url += `/formula/${encodeURIComponent(searchQuery)}`;
+          break;
+        default:
+          throw new Error('Невідомий тип пошуку');
+      }
+  
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (!data || !data.name) {
+        throw new Error('Речовину не знайдено');
+      }
+  
+      setSelectedSubstance(data);
+      
+      // Зберігаємо в історію тільки якщо є валідні дані
+      if (data && data.name && data.formula) {
+        const updatedHistory = await addToHistory(data);
+        setRecentSubstances(updatedHistory);
+      }
+      
+      setSearchModalVisible(false);
+      setResultsModalVisible(true);
+      setSearchQuery('');
+    } catch (error) {
+      if (error instanceof Error) {
+        Alert.alert('Помилка', 
+          error.message === 'Речовину не знайдено' 
+            ? 'Речовину не знайдено' 
+            : 'Помилка при пошуку речовини'
+        );
+      } else {
+        Alert.alert('Помилка', 'Не вдалося здійснити пошук');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    const result = await response.json();
-    setSelectedSubstance(result);
-    setResultsModalVisible(true);
-    setSearchModalVisible(false);
-  } catch (error) {
-    console.error('Error:', error);
-    Alert.alert('Помилка', 'Даних не знайдено.');
-  } finally {
-    setIsLoading(false);
-  }
-};
+  const renderSearchModal = () => (
+    <Modal
+      visible={searchModalVisible}
+      animationType="fade"
+      transparent={true}
+      onRequestClose={() => setSearchModalVisible(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <Text style={styles.modalTitle}>
+            {currentSearchType === 'name' && 'Пошук за назвою'}
+            {currentSearchType === 'oon' && 'Пошук за ООН номером'}
+            {currentSearchType === 'haz' && 'Пошук за HAZ кодом'}
+            {currentSearchType === 'imdg' && 'Пошук за IMDG кодом'}
+            {currentSearchType === 'formula' && 'Пошук за формулою'}
+          </Text>
+          
+          <View style={styles.searchInputContainer}>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Введіть пошуковий запит..."
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              onSubmitEditing={handleSearch}
+              keyboardType={currentSearchType === 'oon' ? 'numeric' : 'default'}
+              autoFocus={true}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity
+                style={styles.clearButton}
+                onPress={() => setSearchQuery('')}
+              >
+                <Text style={styles.clearButtonText}>✕</Text>
+              </TouchableOpacity>
+            )}
+          </View>
 
-const closeResultsModal = () => {
-  setResultsModalVisible(false);
-  setSelectedSubstance(null);
-  setCurrentIndex(0);
-  setSubstanceIds([]);
-};
-
-return (
-  <ThemedView style={styles.mainContainer}>
-    <ThemedView style={styles.innerContainer}>
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.button} onPress={() => openSearchModal('name')}>
-          <ThemedText style={styles.buttonText}>Пошук за назвою</ThemedText>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.button} onPress={() => openSearchModal('oon')}>
-          <ThemedText style={styles.buttonText}>Пошук за ООН - номером</ThemedText>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.button} onPress={() => openSearchModal('haz')}>
-          <ThemedText style={styles.buttonText}>Пошук за HAZ кодом</ThemedText>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.button} onPress={() => openSearchModal('imdg')}>
-          <ThemedText style={styles.buttonText}>Пошук за IMDG кодом</ThemedText>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.button} onPress={() => openSearchModal('formula')}>
-          <ThemedText style={styles.buttonText}>Пошук за формулою</ThemedText>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.button} onPress={() => openSearchModal('all')}>
-          <ThemedText style={styles.buttonText}>Довідник речовин</ThemedText>
-        </TouchableOpacity>
+          <View style={styles.modalButtons}>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.cancelButton]}
+              onPress={() => {
+                setSearchModalVisible(false);
+                setSearchQuery('');
+              }}
+            >
+              <Text style={styles.cancelButtonText}>Скасувати</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.searchButton]}
+              onPress={handleSearch}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator color="white" size="small" />
+              ) : (
+                <Text style={styles.searchButtonText}>Пошук</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
       </View>
-        {/* Search Modal */}
-        <Modal visible={searchModalVisible} animationType="slide" transparent={true}>
-  <View style={styles.modalSearchContainer}>
-    <View style={styles.modalSearchContent}>
-      {searchBy === 'oon' ? (
-        <>
-          <TextInput
-            style={styles.searchInput}
-            placeholder="ООН - номер"
-            value={oon}
-            keyboardType="numeric"
-            onChangeText={setOon}
-          />
-        </>
-      ) : searchBy === 'name' ? (
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Назва"
-          value={searchNameQuery}
-          onChangeText={setSearchNameQuery}
-        />
-      ) : searchBy === 'haz' ? (
-        <TextInput
-          style={styles.searchInput}
-          placeholder="HAZ код"
-          value={searchHazQuery}
-          onChangeText={setSearchHazQuery}
-        />
-      ) : searchBy === 'imdg' ? (
-        <TextInput
-          style={styles.searchInput}
-          placeholder="IMDG код"
-          value={searchImdgQuery}
-          onChangeText={setSearchImdgQuery}
-        />
-      ) : searchBy === 'formula' ? (
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Хімічна формула"
-          value={searchFormulaQuery}
-          onChangeText={setSearchFormulaQuery}
-        />
-      ) : 
-      null}
-
-      <TouchableOpacity style={styles.searchButton} onPress={openResultsModal}>
-        <ThemedText style={styles.searchButtonText}>Пошук</ThemedText>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.closeButton} onPress={closeSearchModal}>
-        <ThemedText style={styles.closeButtonText}>Закрити</ThemedText>
-      </TouchableOpacity>
-    </View>
-  </View>
-</Modal>
+    </Modal>
+  );
 
 
-        {/* Results Modal */}
-        <Modal visible={resultsModalVisible} animationType="slide" transparent={true}>
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-            <ScrollView>
-            {selectedSubstance ? (
-              <View style={styles.infoCard}>
+const renderResultsModal = () => (
+  <Modal
+    visible={resultsModalVisible}
+    animationType="slide"
+    transparent={true}
+    onRequestClose={() => setResultsModalVisible(false)}
+  >
+    <View style={styles.modalContainer}>
+      <View style={styles.modalContent}>
+        <ScrollView>
+          {selectedSubstance ? (
+            <View style={styles.infoCard}>
               <Text style={styles.modalTitle}>Інформація про речовину</Text>
-              
+
               <Text style={styles.modalText}>
                 <Text style={styles.boldText}>Назва: </Text>
                 <Text style={styles.italicText}>{selectedSubstance.name}</Text>
               </Text>
-              
+
               <Text style={styles.modalText}>
                 <Text style={styles.boldText}>Формула: </Text>
                 <Text style={styles.italicText}>{selectedSubstance.formula}</Text>
               </Text>
-            
+
               <Text style={styles.modalText}>
                 <Text style={styles.boldText}>Опис: </Text>
                 <Text style={styles.italicText}>{selectedSubstance.description}</Text>
               </Text>
 
               <Text style={styles.modalText}>
-                <Text style={styles.boldText}>IMDG: </Text>
+                <Text style={styles.boldText}>OOH номер: </Text>
+                <Text style={styles.italicText}>{selectedSubstance.oonNumber}</Text>
+              </Text>
+
+              <Text style={styles.modalText}>
+                <Text style={styles.boldText}>Число небезпеки: </Text>
+                <Text style={styles.italicText}>{selectedSubstance.dangerousNumber}</Text>
+              </Text>
+
+              <Text style={styles.modalText}>
+                <Text style={styles.boldText}>IMDG код: </Text>
                 <Text style={styles.italicText}>{selectedSubstance.imdg}</Text>
               </Text>
 
               <Text style={styles.modalText}>
-                <Text style={styles.boldText}>HAZ: </Text>
+                <Text style={styles.boldText}>HAZ код: </Text>
                 <Text style={styles.italicText}>{selectedSubstance.haz}</Text>
               </Text>
-              
-              <Text style={styles.modalSubtitle}>Властивості речовини</Text>
+
+              {/* Physical Properties */}
+              <Text style={styles.modalSubtitle}>Фізичні властивості</Text>
               
               <Text style={styles.modalText}>
                 <Text style={styles.boldText}>Агрегатний стан: </Text>
                 <Text style={styles.italicText}>{selectedSubstance.aggregationState}</Text>
               </Text>
-            
+
               <Text style={styles.modalText}>
                 <Text style={styles.boldText}>Густина за повітрям: </Text>
                 <Text style={styles.italicText}>{selectedSubstance.densityAir}</Text>
               </Text>
-            
+
               <Text style={styles.modalText}>
                 <Text style={styles.boldText}>Густина за водою: </Text>
                 <Text style={styles.italicText}>{selectedSubstance.densityWater}</Text>
               </Text>
-            
+
               <Text style={styles.modalText}>
                 <Text style={styles.boldText}>Розчинність: </Text>
                 <Text style={styles.italicText}>{selectedSubstance.solubility}</Text>
               </Text>
 
               <Text style={styles.modalText}>
-                <Text style={styles.boldText}>Температура кипіння: </Text>
-                <Text style={styles.italicText}>{selectedSubstance.temperatureProperties.boilingPoint}</Text>
-              </Text>
-
-              <Text style={styles.modalText}>
-                <Text style={styles.boldText}>Температура замерзання: </Text>
-                <Text style={styles.italicText}>{selectedSubstance.temperatureProperties.freezePoint}</Text>
-              </Text>
-
-              <Text style={styles.modalText}>
-                <Text style={styles.boldText}>Температура плавлення: </Text>
-                <Text style={styles.italicText}>{selectedSubstance.temperatureProperties.meltingPoint}</Text>
-              </Text>
-
-              <Text style={styles.modalText}>
-                <Text style={styles.boldText}>Температура спалахування: </Text>
-                <Text style={styles.italicText}>{selectedSubstance.temperatureProperties.flashPoint}</Text>
+                <Text style={styles.boldText}>Молекулярна вага: </Text>
+                <Text style={styles.italicText}>{selectedSubstance.molecularWeight}</Text>
               </Text>
 
               <Text style={styles.modalText}>
@@ -412,16 +311,37 @@ return (
                 <Text style={styles.italicText}>{selectedSubstance.flammabilityClass}</Text>
               </Text>
 
+              {/* Temperature Properties */}
+              <Text style={styles.modalSubtitle}>Температурні властивості</Text>
+
               <Text style={styles.modalText}>
-                <Text style={styles.boldText}>Молекулярна вага: </Text>
-                <Text style={styles.italicText}>{selectedSubstance.molecularWeight}</Text>
+                <Text style={styles.boldText}>Температура кипіння: </Text>
+                <Text style={styles.italicText}>{selectedSubstance.temperatureProperties.boilingPoint}°C</Text>
               </Text>
-            
+
+              <Text style={styles.modalText}>
+                <Text style={styles.boldText}>Температура замерзання: </Text>
+                <Text style={styles.italicText}>{selectedSubstance.temperatureProperties.freezePoint}°C</Text>
+              </Text>
+
+              <Text style={styles.modalText}>
+                <Text style={styles.boldText}>Температура плавлення: </Text>
+                <Text style={styles.italicText}>{selectedSubstance.temperatureProperties.meltingPoint}°C</Text>
+              </Text>
+
+              <Text style={styles.modalText}>
+                <Text style={styles.boldText}>Температура спалахування: </Text>
+                <Text style={styles.italicText}>{selectedSubstance.temperatureProperties.flashPoint}°C</Text>
+              </Text>
+
+              {/* Hazard Information */}
+              <Text style={styles.modalSubtitle}>Інформація про небезпеку</Text>
+
               <Text style={styles.modalText}>
                 <Text style={styles.boldText}>Загальна небезпека: </Text>
                 <Text style={styles.italicText}>{selectedSubstance.generalDanger}</Text>
               </Text>
-            
+
               <Text style={styles.modalText}>
                 <Text style={styles.boldText}>Небезпека з водою: </Text>
                 <Text style={styles.italicText}>{selectedSubstance.waterDanger}</Text>
@@ -432,7 +352,9 @@ return (
                 <Text style={styles.italicText}>{selectedSubstance.container}</Text>
               </Text>
 
+              {/* Health Effects */}
               <Text style={styles.modalSubtitle}>Вплив на здоров'я</Text>
+
               <Text style={styles.modalText}>
                 <Text style={styles.boldText}>Летальна доза: </Text>
                 <Text style={styles.italicText}>{selectedSubstance.healthInvolve.lethal}</Text>
@@ -458,17 +380,20 @@ return (
                 <Text style={styles.italicText}>{selectedSubstance.healthInvolve.organImpacts}</Text>
               </Text>
 
-              <Text style={styles.modalSubtitle}>Захист</Text>
+              {/* Protection Recommendations */}
+              <Text style={styles.modalSubtitle}>Рекомендації щодо захисту</Text>
+
               <Text style={styles.modalText}>
-                <Text style={styles.boldText}>Дихання: </Text>
+                <Text style={styles.boldText}>Захист дихання: </Text>
                 <Text style={styles.italicText}>{selectedSubstance.respirationRecommendation}</Text>
               </Text>
 
               <Text style={styles.modalText}>
-                <Text style={styles.boldText}>Шкіра: </Text>
+                <Text style={styles.boldText}>Захист шкіри: </Text>
                 <Text style={styles.italicText}>{selectedSubstance.skinDefenseRecommendation}</Text>
               </Text>
 
+              {/* First Aid */}
               <Text style={styles.modalSubtitle}>Перша допомога</Text>
 
               <Text style={styles.modalText}>
@@ -490,273 +415,344 @@ return (
                 <Text style={styles.boldText}>При ковтанні: </Text>
                 <Text style={styles.italicText}>{selectedSubstance.firstAid.swallowing}</Text>
               </Text>
-            
+
+              {/* Danger Square */}
               <Text style={styles.modalSubtitle}>Квадрат небезпеки</Text>
-            
+
               <Text style={styles.modalText}>
                 <Text style={styles.boldText}>Здоров'я: </Text>
                 <Text style={styles.italicText}>{selectedSubstance.dangerSquare.health}</Text>
               </Text>
-            
+
               <Text style={styles.modalText}>
                 <Text style={styles.boldText}>Пожежна: </Text>
                 <Text style={styles.italicText}>{selectedSubstance.dangerSquare.fire}</Text>
               </Text>
-            
+
               <Text style={styles.modalText}>
                 <Text style={styles.boldText}>Хімічна: </Text>
                 <Text style={styles.italicText}>{selectedSubstance.dangerSquare.chemistry}</Text>
               </Text>
-            
+
               <Text style={styles.modalText}>
                 <Text style={styles.boldText}>Примітки: </Text>
                 <Text style={styles.italicText}>{selectedSubstance.dangerSquare.other}</Text>
               </Text>
+
             </View>
-            
-            ) : (
-              <Text style={styles.modalText}>Інформації про речовину не знайдено</Text>
-            )}
-          </ScrollView>
-          {searchBy === 'all' && substanceIds.length > 0 && (
-              <View style={styles.navigationContainer}>
-                <TouchableOpacity 
-                  style={[
-                    styles.navigationButton,
-                    currentIndex === 0 && styles.navigationButtonDisabled
-                  ]}
-                  onPress={handlePrevious}
-                  disabled={currentIndex === 0}
-                >
-                  <ThemedText style={styles.navigationButtonText}>Попередня</ThemedText>
-                </TouchableOpacity>
+          ) : (
+            <Text style={styles.modalText}>Інформацію не знайдено</Text>
+          )}
+        </ScrollView>
 
-                <View style={styles.pageIndicatorContainer}>
-                  <Text style={styles.pageIndicator}>
-                    {`${currentIndex + 1} / ${substanceIds.length}`}
-                  </Text>
-                </View>
+        <TouchableOpacity
+          style={styles.closeButton}
+          onPress={() => setResultsModalVisible(false)}
+        >
+          <Text style={styles.closeButtonText}>Закрити</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  </Modal>
+);
 
-                <TouchableOpacity 
-                  style={[
-                    styles.navigationButton,
-                    currentIndex === substanceIds.length - 1 && styles.navigationButtonDisabled
-                  ]}
-                  onPress={handleNext}
-                  disabled={currentIndex === substanceIds.length - 1}
-                >
-                  <ThemedText style={styles.navigationButtonText}>Наступна</ThemedText>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            <TouchableOpacity style={styles.closeButton} onPress={closeResultsModal}>
-              <ThemedText style={styles.closeButtonText}>Закрити</ThemedText>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-    </ThemedView>
-  </ThemedView>
+return (
+  <SafeAreaView style={styles.container}>
+    <View style={styles.centered}>
+      <View style={styles.grid}>
+        {searchCategories.map(({ id, title, Icon }) => (
+          <TouchableOpacity
+            key={id}
+            style={styles.categoryCard}
+            onPress={() => {
+              setCurrentSearchType(id);
+              setSearchModalVisible(true);
+            }}
+            activeOpacity={0.7}
+          >
+            <Icon size={24} color="#1a73e8" />
+            <Text style={styles.categoryTitle}>{title}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+      {recentSubstances && recentSubstances.length > 0 && (
+  <View style={styles.historyContainer}>
+    <View style={styles.historyHeader}>
+      <Text style={styles.historyTitle}>Недавно переглянуті</Text>
+      <TouchableOpacity 
+        onPress={async () => {
+          await clearHistory();
+          setRecentSubstances([]);
+        }}
+      >
+        <Text style={styles.clearHistoryText}>Очистити</Text>
+      </TouchableOpacity>
+    </View>
+    
+    {recentSubstances.map((item) => (
+  <TouchableOpacity
+    key={item.name}  // Тепер використовуємо name як ключ
+    style={styles.historyItem}
+    onPress={async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch(`http://10.138.134.232:8080/substances/${encodeURIComponent(item.name)}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch substance');
+        }
+        const data = await response.json();
+        setSelectedSubstance(data);
+        setResultsModalVisible(true);
+      } catch (error) {
+        Alert.alert('Помилка', 'Не вдалося завантажити дані про речовину');
+      } finally {
+        setIsLoading(false);
+      }
+    }}
+  >
+    <View>
+      <Text style={styles.historyItemName}>{item.name}</Text>
+      {item.formula && (
+        <Text style={styles.historyItemFormula}>{item.formula}</Text>
+      )}
+    </View>
+    <Search size={16} color="#666" />
+  </TouchableOpacity>
+))}
+  </View>
+)}
+</View>
+    {renderSearchModal()}
+    {renderResultsModal()}
+  </SafeAreaView>
 );
 };
 
 const styles = StyleSheet.create({
-  mainContainer:{
+  container: {
     flex: 1,
-    backgroundColor: '#f8f9fa'
+    backgroundColor: '#f8f9fa',
   },
-  modalSearchContainer:{
+  centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 45,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
-  modalSearchContent:{
-    backgroundColor: '#f8f9fa',
-    padding: 20,
-    borderRadius: 10,
-    width: '75%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 15,
-    elevation: 15,
-  },
-  innerContainer: {
-    flex: 1,
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'center',
-    alignContent: 'center',
+    alignItems: 'center',
+    gap: 16,
     padding: 16,
-    backgroundColor: '#f8f9fa',
+    maxWidth: SCREEN_WIDTH,
   },
-  buttonContainer: {
-    flexDirection: 'column',
+  topRow: {
+    flexDirection: 'row',
     justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
-    backgroundColor: '#f8f9fa',
+    gap: 16,
+    marginBottom: 16,
   },
-  button: {
-    backgroundColor: 'white',
-    padding: 15,
-    borderRadius: 8,
-    margin: 5,
-    width: '80%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  buttonText: {
-    color: '#1a73e8',
-    textAlign: 'center',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  modalContainer: {
-    flex: 1,
+  bottomRow: {
+    flexDirection: 'row',
     justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    gap: 16,
+    marginTop: 16,
   },
-  modalContent: {
-    backgroundColor: '#f8f9fa',
-    padding: 20,
-    borderRadius: 10,
-    width: '100%',
-    height: '90%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.25,
-    shadowRadius: 20,
-    elevation: 20,
-  },
-  searchInput: {
-    height: 40,
-    borderColor: '#ddd',
-    borderWidth: 1,
-    borderRadius: 5,
-    paddingHorizontal: 10,
-    marginBottom: 10,
-    fontStyle: 'italic',
+  categoryCard: {
+    width: (SCREEN_WIDTH - 48) / 2,
+    aspectRatio: 1.5,
     backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 6,
+    shadowRadius: 8,
+    elevation: 3,
+    gap: 8,
   },
-  searchButton: {
-    backgroundColor: '#28A745',
-    padding: 15,
-    borderRadius: 8,
-    marginBottom: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  searchButtonText: {
-    color: '#fff',
-    textAlign: 'center',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  closeButton: {
-    backgroundColor: '#007BFF',
-    padding: 15,
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  closeButtonText: {
-    color: '#fff',
-    textAlign: 'center',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  infoCard: {
-    marginBottom: 10,
+  formulaCard: {
+    width: (SCREEN_WIDTH - 48) / 2,
+    aspectRatio: 1.5,
     backgroundColor: '#f8f9fa',
-    padding: 15,
-    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#1a73e8',
+    borderStyle: 'dashed',
+  },
+  categoryTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#333',
+    textAlign: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 20,
+    width: '90%',
+    maxHeight: '90%',
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    color: '#007BFF',
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1a73e8',
+    marginBottom: 16,
   },
   modalSubtitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginTop: 10,
-    marginBottom: 5,
-    color: '#007BFF',
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1a73e8',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  searchInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    marginBottom: 16,
+  },
+  searchInput: {
+    flex: 1,
+    height: 40,
+    paddingHorizontal: 12,
+    fontSize: 16,
+    color: '#333',
+  },
+  clearButton: {
+    padding: 8,
+    marginRight: 4,
+  },
+  clearButtonText: {
+    fontSize: 16,
+    color: '#666',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#f8f9fa',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  cancelButtonText: {
+    color: '#666',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  searchButton: {
+    backgroundColor: '#1a73e8',
+  },
+  searchButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  infoCard: {
+    marginBottom: 16,
   },
   modalText: {
-    fontSize: 16,
-    marginBottom: 5,
-    color: '#333',
+    fontSize: 14,
+    marginBottom: 8,
+    lineHeight: 20,
   },
   boldText: {
     fontWeight: 'bold',
+    color: '#333',
   },
   italicText: {
-    fontStyle: 'italic',
+    color: '#666',
   },
-  allSubstancesContainer: {
+  closeButton: {
+    backgroundColor: '#1a73e8',
+    padding: 12,
+    borderRadius: 8,
     alignItems: 'center',
-    width: '100%',
+    marginTop: 16,
   },
-  navigationContainer: {
+  closeButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  loadingContainer: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  historyContainer: {
+    width: '100%',
+    paddingHorizontal: 16,
+    marginTop: 24,
+  },
+  historyHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 10,
-    marginBottom: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#ddd',
+    marginBottom: 12,
   },
-  navigationButton: {
-    backgroundColor: '#007BFF',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 6,
-    minWidth: 100,
+  historyTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#666',
   },
-  navigationButtonDisabled: {
-    backgroundColor: '#cccccc',
-  },
-  navigationButtonText: {
-    color: '#fff',
-    textAlign: 'center',
-    fontWeight: 'bold',
+  clearHistoryText: {
     fontSize: 14,
+    color: '#1a73e8',
   },
-  pageIndicatorContainer: {
-    backgroundColor: '#f8f9fa',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: '#ddd',
+  historyList: {
+    width: '100%',
   },
-  pageIndicator: {
+  historyItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  historyItemName: {
     fontSize: 14,
-    color: '#666666',
-    fontWeight: 'bold',
+    fontWeight: '500',
+    color: '#333',
   },
-  scrollView: {
-    flex: 1,
+  historyItemFormula: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 2,
   },
 });
 
-export default SubstancesScreen;
+export default ExploreScreen;

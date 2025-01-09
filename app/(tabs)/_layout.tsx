@@ -10,10 +10,10 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#1a73e8', // Колір тексту для активної вкладки
-        tabBarInactiveTintColor: '#151718', // Колір тексту для неактивної вкладки
+        tabBarActiveTintColor: '#1a73e8',
+        tabBarInactiveTintColor: '#151718',
         tabBarLabelStyle: {
-          fontSize: 10, // Зменшення розміру шрифту
+          fontSize: 10,
         },
         headerShown: false,
       }}>
@@ -37,6 +37,19 @@ export default function TabLayout() {
           tabBarIcon: ({ focused }) => (
             <TabBarIcon
               name={focused ? 'camera' : 'camera-outline'}
+              color={focused ? '#1a73e8' : '#151718'}
+            />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="directory"
+        options={{
+          title: 'Довідник',
+          tabBarIcon: ({ focused }) => (
+            <TabBarIcon
+              name={focused ? 'book' : 'book-outline'}
               color={focused ? '#1a73e8' : '#151718'}
             />
           ),
