@@ -10,6 +10,8 @@ import {
   ActivityIndicator,
   SafeAreaView,
   TextInput,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
 } from 'react-native';
 import { Search, Filter, Bookmark } from 'lucide-react-native';
 import { Picker } from '@react-native-picker/picker';
@@ -25,15 +27,26 @@ import {
 } from '@/components/substance';
 import { addToBookmarks, removeFromBookmarks, isSubstanceBookmarked } from '@/components/bookmarksStorage';
 
+const ITEMS_PER_PAGE = 5;
+
 const DirectoryScreen = () => {
+  // Основні стейти
   const [substances, setSubstances] = useState<Substance[]>([]);
-  const [filteredSubstances, setFilteredSubstances] = useState<Substance[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedSubstance, setSelectedSubstance] = useState<Substance | null>(null);
+  const [isBookmarked, setIsBookmarked] = useState(false);
+
+  // Стейти для пагінації
+  const [page, setPage] = useState(0);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+
+  // Стейти для модальних вікон
   const [modalVisible, setModalVisible] = useState(false);
   const [filterModalVisible, setFilterModalVisible] = useState(false);
+
+  // Стейти для пошуку та фільтрів
   const [searchQuery, setSearchQuery] = useState('');
-  const [isBookmarked, setIsBookmarked] = useState(false);
   const [filters, setFilters] = useState<Filters>({
     dangerousNumber: '',
     aggregationState: '',
@@ -44,13 +57,28 @@ const DirectoryScreen = () => {
     waterDanger: '',
   });
 
+  // Допоміжна функція для безпечного отримання рядкових значень
+  const safeString = (value: any): string => {
+    if (value === null || value === undefined) return 'Не вказано';
+    return String(value);
+  };
+
   useEffect(() => {
     fetchSubstances();
   }, []);
 
   useEffect(() => {
-    filterSubstances();
-  }, [searchQuery, filters, substances]);
+    setPage(0);
+    setSubstances([]);
+    setHasMore(true);
+    fetchSubstances();
+  }, [searchQuery, filters]);
+
+  useEffect(() => {
+    if (page > 0) {
+      fetchSubstances(true);
+    }
+  }, [page]);
 
   useEffect(() => {
     const checkBookmarkStatus = async () => {
@@ -62,66 +90,68 @@ const DirectoryScreen = () => {
     checkBookmarkStatus();
   }, [selectedSubstance]);
 
-  const fetchSubstances = async () => {
-    setIsLoading(true);
+  const fetchSubstances = async (loadMore = false) => {
+    if (!loadMore) {
+      setIsLoading(true);
+    }
+    
     try {
-      const response = await fetch('http://10.138.134.152:8080/substances');
+      const queryParams = new URLSearchParams({
+        page: String(page),
+        size: String(ITEMS_PER_PAGE),
+        ...(searchQuery && { search: searchQuery }),
+        ...(filters.dangerousNumber && { dangerousNumber: filters.dangerousNumber.toString() }),
+        ...(filters.aggregationState && { aggregationState: filters.aggregationState }),
+        ...(filters.densityWater && { densityWater: filters.densityWater }),
+        ...(filters.densityAir && { densityAir: filters.densityAir }),
+        ...(filters.solubility && { solubility: filters.solubility }),
+        ...(filters.generalDanger && { generalDanger: filters.generalDanger }),
+        ...(filters.waterDanger && { waterDanger: filters.waterDanger })
+      }).toString();
+
+      const response = await fetch(`http://10.138.134.152:8080/substances/search?${queryParams}`);
       if (!response.ok) throw new Error('Network response was not ok');
+      
       const data = await response.json();
-      setSubstances(data);
-      setFilteredSubstances(data);
+      
+      setSubstances(prev => loadMore ? [...prev, ...data.content] : data.content);
+      setHasMore(!data.last);
+      
     } catch (error) {
       Alert.alert('Помилка', 'Не вдалося завантажити список речовин');
     } finally {
       setIsLoading(false);
+      setIsLoadingMore(false);
     }
   };
 
-  const filterSubstances = () => {
-    const filtered = substances.filter(substance => {
-      // Базовий пошук
-      const searchTerms = searchQuery.toLowerCase().split(' ');
-      const matchesSearch = searchTerms.every(term =>
-        (substance.name?.toLowerCase() || '').includes(term) ||
-        (substance.formula?.toLowerCase() || '').includes(term) ||
-        (substance.oonNumber?.toString() || '').includes(term) ||
-        (substance.dangerousNumber?.toString()?.toLowerCase() || '').includes(term)
-      );
-  
-      // Додаткові фільтри
-      const matchesDangerousNumber = !filters.dangerousNumber || 
-        (substance.dangerousNumber?.toString()?.toLowerCase() || '').includes(filters.dangerousNumber.toLowerCase());
-      
-      const matchesAggregationState = !filters.aggregationState || 
-        (substance.aggregationState?.toLowerCase() || '').includes(filters.aggregationState.toLowerCase());
-      
-      const matchesDensityWater = !filters.densityWater || 
-        (substance.densityWater?.toLowerCase() || '').includes(filters.densityWater.toLowerCase());
-      
-      const matchesDensityAir = !filters.densityAir || 
-        (substance.densityAir?.toLowerCase() || '').includes(filters.densityAir.toLowerCase());
-      
-      const matchesSolubility = !filters.solubility || 
-        (substance.solubility?.toLowerCase() || '').includes(filters.solubility.toLowerCase());
-      
-      const matchesGeneralDanger = !filters.generalDanger || 
-        (substance.generalDanger?.toLowerCase() || '').includes(filters.generalDanger.toLowerCase());
-      
-      const matchesWaterDanger = !filters.waterDanger || 
-        (substance.waterDanger?.toLowerCase() || '').includes(filters.waterDanger.toLowerCase());
-  
-      return matchesSearch && 
-        matchesDangerousNumber && 
-        matchesAggregationState && 
-        matchesDensityWater && 
-        matchesDensityAir && 
-        matchesSolubility && 
-        matchesGeneralDanger && 
-        matchesWaterDanger;
-    });
+  const loadMore = () => {
+    if (isLoadingMore || !hasMore) {
+      console.log('Пропуск завантаження:', { isLoadingMore, hasMore });
+      return;
+    }
     
-    setFilteredSubstances(filtered);
+    console.log('Завантаження наступної сторінки...');
+    setIsLoadingMore(true);
+    setPage(prev => prev + 1);
   };
+
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+    
+    // Розрахуємо відстань до кінця
+    const paddingToBottom = 50; // збільшимо відступ для раннього тригера
+    const currentScrollPosition = layoutMeasurement.height + contentOffset.y;
+    const scrollContentSize = contentSize.height;
+    
+    // Перевіримо, чи ми досягли кінця з урахуванням відступу
+    if (currentScrollPosition + paddingToBottom >= scrollContentSize) {
+      if (!isLoadingMore && hasMore) {
+        loadMore();
+      }
+    }
+  };
+
   const handleBookmarkToggle = async () => {
     if (!selectedSubstance) return;
   
@@ -137,6 +167,54 @@ const DirectoryScreen = () => {
       Alert.alert('Помилка', 'Не вдалося оновити закладки');
     }
   };
+
+  const handleFilterApply = () => {
+    setFilterModalVisible(false);
+    setPage(0);
+    setSubstances([]);
+    setHasMore(true);
+    fetchSubstances();
+  };
+
+  const renderSubstancesList = () => {
+    if (!substances.length) {
+      return (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>Речовини не знайдено</Text>
+        </View>
+      );
+    }
+  
+    return substances.map((substance, index) => (
+      <TouchableOpacity
+        // Використовуємо індекс для забезпечення унікальності
+        key={`${substance.oonNumber}-${substance.name}-${index}`}
+        // або можна використати більш складний ключ
+        // key={`${substance.oonNumber}-${substance.name}-${substance.formula || ''}-${index}`}
+        style={styles.substanceCard}
+        onPress={() => {
+          setSelectedSubstance(substance);
+          setModalVisible(true);
+        }}
+      >
+        <Text style={styles.substanceName}>
+          {safeString(substance.name)}
+        </Text>
+        <Text style={styles.substanceFormula}>
+          {safeString(substance.formula)}
+        </Text>
+        <Text style={styles.substanceOon}>
+          <Text>ООН: </Text>
+          <Text>{safeString(substance.oonNumber)}</Text>
+        </Text>
+        <Text style={styles.dangerousNumber}>
+          <Text>Номер небезпеки: </Text>
+          <Text>{safeString(substance.dangerousNumber)}</Text>
+        </Text>
+      </TouchableOpacity>
+    ));
+  };
+
   const renderResultsModal = () => (
     <Modal
       visible={modalVisible}
@@ -358,10 +436,9 @@ const DirectoryScreen = () => {
                                   <Text style={styles.boldText}>Примітки: </Text>
                                   <Text style={styles.italicText}>{selectedSubstance.dangerSquare.other}</Text>
                                 </Text>
-              </View>
+                                </View>
             )}
           </ScrollView>
-
           <TouchableOpacity
             style={styles.closeButton}
             onPress={() => setModalVisible(false)}
@@ -384,7 +461,7 @@ const DirectoryScreen = () => {
         <View style={styles.modalContent}>
           <ScrollView>
             <Text style={styles.modalTitle}>Фільтри</Text>
-  
+
             <View style={styles.filterInputContainer}>
               <Text style={styles.filterLabel}>Номер небезпеки:</Text>
               <TextInput
@@ -394,7 +471,7 @@ const DirectoryScreen = () => {
                 placeholder="Введіть номер небезпеки..."
               />
             </View>
-  
+
             <View style={styles.filterInputContainer}>
               <Text style={styles.filterLabel}>Агрегатний стан:</Text>
               <View style={styles.pickerContainer}>
@@ -502,14 +579,20 @@ const DirectoryScreen = () => {
                 </Picker>
               </View>
             </View>
-  
-            {/* ... buttons remain the same ... */}
+
+            <View style={styles.filterButtonsContainer}>
+              <TouchableOpacity
+                style={[styles.filterButton, styles.applyButton]}
+                onPress={handleFilterApply}
+              >
+                <Text style={styles.filterButtonText}>OK</Text>
+              </TouchableOpacity>
+            </View>
           </ScrollView>
         </View>
       </View>
     </Modal>
   );
-  
 
   if (isLoading) {
     return (
@@ -539,25 +622,22 @@ const DirectoryScreen = () => {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.contentContainer}>
+      <ScrollView 
+        style={styles.contentContainer}
+        onScroll={handleScroll}
+        onScrollEndDrag={handleScroll}
+        scrollEventThrottle={16}
+      >
         <View style={styles.substancesContainer}>
-          {filteredSubstances.map((substance) => (
-            <TouchableOpacity
-              key={`${substance.oonNumber}-${substance.name}`}
-              style={styles.substanceCard}
-              onPress={() => {
-                setSelectedSubstance(substance);
-                setModalVisible(true);
-              }}
-            >
-              <Text style={styles.substanceName}>{substance.name}</Text>
-              <Text style={styles.substanceFormula}>{substance.formula}</Text>
-              <Text style={styles.substanceOon}>ООН: {substance.oonNumber}</Text>
-              <Text style={styles.dangerousNumber}>Номер небезпеки: {substance.dangerousNumber}</Text>
-            </TouchableOpacity>
-          ))}
+          {renderSubstancesList()}
+          {isLoadingMore && (
+            <View style={styles.loadingMoreContainer}>
+              <ActivityIndicator size="small" color="#1a73e8" />
+            </View>
+          )}
         </View>
       </ScrollView>
+
       {renderResultsModal()}
       {renderFilterModal()}
     </SafeAreaView>
@@ -752,6 +832,21 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     paddingRight: 1,
   },
+  loadingMoreContainer: {
+    padding: 16,
+    alignItems: 'center',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+  }
 });
 
 export default DirectoryScreen;
