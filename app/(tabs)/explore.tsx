@@ -15,54 +15,8 @@ import {
 import { Search, FileText, Database, Scan, Info, Beaker, Bookmark } from 'lucide-react-native';
 import { getHistory, addToHistory, clearHistory, HistoryItem } from '@/components/historyStorage';
 import { addToBookmarks, removeFromBookmarks, isSubstanceBookmarked } from '@/components/bookmarksStorage';
+import { Substance } from '@/components/substance';
 
-
-
-interface Substance {
-  oonNumber: number;
-  name: string;
-  dangerousNumber: string;
-  formula: string;
-  description: string;
-  aggregationState: string;
-  densityAir: string;
-  densityWater: string;
-  solubility: string;
-  generalDanger: string;
-  waterDanger: string;
-  imdg: string;
-  haz: string;
-  container: string;
-  respirationRecommendation: string;
-  skinDefenseRecommendation: string;
-  molecularWeight: number;
-  flammabilityClass: string;
-  temperatureProperties: {
-    boilingPoint: number;
-    freezePoint: number;
-    meltingPoint: number;
-    flashPoint: number;
-  };
-  healthInvolve: {
-    lethal: number;
-    limitConcentration: number;
-    involveWays: string;
-    symptoms: string;
-    organImpacts: string;
-  };
-  firstAid: {
-    eyes: string;
-    skin: string;
-    inhalation: string;
-    swallowing: string;
-  };
-  dangerSquare: {
-    health: number;
-    fire: number;
-    chemistry: number;
-    other: number;
-  };
-}
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
@@ -317,6 +271,11 @@ const ExploreScreen = () => {
                     <Text style={styles.boldText}>HAZ код: </Text>
                     <Text style={styles.italicText}>{selectedSubstance.haz}</Text>
                   </Text>
+
+                  <Text style={styles.modalText}>
+                    <Text style={styles.boldText}>Клас горючості: </Text>
+                    <Text style={styles.italicText}>{selectedSubstance.flammabilityClass}</Text>
+                  </Text>
   
                   {/* Physical Properties */}
                   <Text style={styles.modalSubtitle}>Фізичні властивості</Text>
@@ -344,11 +303,6 @@ const ExploreScreen = () => {
                   <Text style={styles.modalText}>
                     <Text style={styles.boldText}>Молекулярна вага: </Text>
                     <Text style={styles.italicText}>{selectedSubstance.molecularWeight}</Text>
-                  </Text>
-  
-                  <Text style={styles.modalText}>
-                    <Text style={styles.boldText}>Клас горючості: </Text>
-                    <Text style={styles.italicText}>{selectedSubstance.flammabilityClass}</Text>
                   </Text>
   
                   {/* Temperature Properties */}

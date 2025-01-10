@@ -5,53 +5,8 @@ import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
+import { Substance } from '@/components/substance';
 
-interface Substance {
-  id: number;
-  oon: number;
-  name: string;
-  code: string;
-  formula: string;
-  description: string;
-  aggregationState: string;
-  densityAir: string;
-  densityWater: string;
-  solubility: string;
-  generalDanger: string;
-  waterDanger: string;
-  imdg: string;
-  haz: string;
-  container: string;
-  respirationRecommendation: string;
-  skinDefenseRecommendation: string;
-  molecularWeight: number;
-  flammabilityClass: string;
-  temperatureProperties: {
-    boilingPoint: number;
-    freezePoint: number;
-    meltingPoint: number;
-    flashPoint: number; 
-  };
-  healthInvolve: {
-    lethal: number;
-    limitConcentration: number;
-    involveWays: string;
-    symptoms: string;
-    organImpacts: string;
-  };
-  firstAid: {
-    eyes: string;
-    skin: string;
-    inhalation: string;
-    swallowing: string;
-  }
-  dangerSquare: {
-    health: number;
-    fire: number;
-    chemistry: number;
-    other: number;
-  };
-}
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -213,10 +168,9 @@ export default function QRScanner() {
   
       if (data && data.name && data.formula) {
         const substance: Substance = {
-          id: data.lowerNumber ?? 0,
-          oon: data.oon ?? 0,
+          oonNumber: data.oon ?? 0,
           name: data.name ?? '',
-          code: data.upperNumber?.toString() ?? '',
+          dangerousNumber: data.upperNumber?.toString() ?? '',
           formula: data.formula ?? '',
           description: data.description ?? '',
           aggregationState: data.aggregationState ?? '',
@@ -299,177 +253,200 @@ export default function QRScanner() {
                         <Text style={styles.modalTitle}>Інформація про речовину</Text>
                         
                         <Text style={styles.modalText}>
-                          <Text style={styles.boldText}>Назва: </Text>
-                          <Text style={styles.italicText}>{selectedSubstance.name}</Text>
-                        </Text>
+                                            <Text style={styles.boldText}>Назва: </Text>
+                                            <Text style={styles.italicText}>{selectedSubstance.name}</Text>
+                                          </Text>
+                          
+                                          <Text style={styles.modalText}>
+                                            <Text style={styles.boldText}>Формула: </Text>
+                                            <Text style={styles.italicText}>{selectedSubstance.formula}</Text>
+                                          </Text>
+                          
+                                          <Text style={styles.modalText}>
+                                            <Text style={styles.boldText}>Опис: </Text>
+                                            <Text style={styles.italicText}>{selectedSubstance.description}</Text>
+                                          </Text>
+                          
+                                          <Text style={styles.modalText}>
+                                            <Text style={styles.boldText}>OOH номер: </Text>
+                                            <Text style={styles.italicText}>{selectedSubstance.oonNumber}</Text>
+                                          </Text>
+                          
+                                          <Text style={styles.modalText}>
+                                            <Text style={styles.boldText}>Число небезпеки: </Text>
+                                            <Text style={styles.italicText}>{selectedSubstance.dangerousNumber}</Text>
+                                          </Text>
+                          
+                                          <Text style={styles.modalText}>
+                                            <Text style={styles.boldText}>IMDG код: </Text>
+                                            <Text style={styles.italicText}>{selectedSubstance.imdg}</Text>
+                                          </Text>
+                          
+                                          <Text style={styles.modalText}>
+                                            <Text style={styles.boldText}>HAZ код: </Text>
+                                            <Text style={styles.italicText}>{selectedSubstance.haz}</Text>
+                                          </Text>
                         
-                        <Text style={styles.modalText}>
-                          <Text style={styles.boldText}>Формула: </Text>
-                          <Text style={styles.italicText}>{selectedSubstance.formula}</Text>
-                        </Text>
-                      
-                        <Text style={styles.modalText}>
-                          <Text style={styles.boldText}>Опис: </Text>
-                          <Text style={styles.italicText}>{selectedSubstance.description}</Text>
-                        </Text>
-          
-                        <Text style={styles.modalText}>
-                          <Text style={styles.boldText}>IMDG: </Text>
-                          <Text style={styles.italicText}>{selectedSubstance.imdg}</Text>
-                        </Text>
-          
-                        <Text style={styles.modalText}>
-                          <Text style={styles.boldText}>HAZ: </Text>
-                          <Text style={styles.italicText}>{selectedSubstance.haz}</Text>
-                        </Text>
-                        
-                        <Text style={styles.modalSubtitle}>Властивості речовини</Text>
-                        
-                        <Text style={styles.modalText}>
-                          <Text style={styles.boldText}>Агрегатний стан: </Text>
-                          <Text style={styles.italicText}>{selectedSubstance.aggregationState}</Text>
-                        </Text>
-                      
-                        <Text style={styles.modalText}>
-                          <Text style={styles.boldText}>Густина за повітрям: </Text>
-                          <Text style={styles.italicText}>{selectedSubstance.densityAir}</Text>
-                        </Text>
-                      
-                        <Text style={styles.modalText}>
-                          <Text style={styles.boldText}>Густина за водою: </Text>
-                          <Text style={styles.italicText}>{selectedSubstance.densityWater}</Text>
-                        </Text>
-                      
-                        <Text style={styles.modalText}>
-                          <Text style={styles.boldText}>Розчинність: </Text>
-                          <Text style={styles.italicText}>{selectedSubstance.solubility}</Text>
-                        </Text>
-          
-                        <Text style={styles.modalText}>
-                          <Text style={styles.boldText}>Температура кипіння: </Text>
-                          <Text style={styles.italicText}>{selectedSubstance.temperatureProperties.boilingPoint}</Text>
-                        </Text>
-          
-                        <Text style={styles.modalText}>
-                          <Text style={styles.boldText}>Температура замерзання: </Text>
-                          <Text style={styles.italicText}>{selectedSubstance.temperatureProperties.freezePoint}</Text>
-                        </Text>
-          
-                        <Text style={styles.modalText}>
-                          <Text style={styles.boldText}>Температура плавлення: </Text>
-                          <Text style={styles.italicText}>{selectedSubstance.temperatureProperties.meltingPoint}</Text>
-                        </Text>
-          
-                        <Text style={styles.modalText}>
-                          <Text style={styles.boldText}>Температура спалахування: </Text>
-                          <Text style={styles.italicText}>{selectedSubstance.temperatureProperties.flashPoint}</Text>
-                        </Text>
-          
-                        <Text style={styles.modalText}>
-                          <Text style={styles.boldText}>Клас горючості: </Text>
-                          <Text style={styles.italicText}>{selectedSubstance.flammabilityClass}</Text>
-                        </Text>
-          
-                        <Text style={styles.modalText}>
-                          <Text style={styles.boldText}>Молекулярна вага: </Text>
-                          <Text style={styles.italicText}>{selectedSubstance.molecularWeight}</Text>
-                        </Text>
-                      
-                        <Text style={styles.modalText}>
-                          <Text style={styles.boldText}>Загальна небезпека: </Text>
-                          <Text style={styles.italicText}>{selectedSubstance.generalDanger}</Text>
-                        </Text>
-                      
-                        <Text style={styles.modalText}>
-                          <Text style={styles.boldText}>Небезпека з водою: </Text>
-                          <Text style={styles.italicText}>{selectedSubstance.waterDanger}</Text>
-                        </Text>
-          
-                        <Text style={styles.modalText}>
-                          <Text style={styles.boldText}>Стійкість тари: </Text>
-                          <Text style={styles.italicText}>{selectedSubstance.container}</Text>
-                        </Text>
-          
-                        <Text style={styles.modalSubtitle}>Вплив на здоров'я</Text>
-                        <Text style={styles.modalText}>
-                          <Text style={styles.boldText}>Летальна доза: </Text>
-                          <Text style={styles.italicText}>{selectedSubstance.healthInvolve.lethal}</Text>
-                        </Text>
-          
-                        <Text style={styles.modalText}>
-                          <Text style={styles.boldText}>Гранично допустима концентрація: </Text>
-                          <Text style={styles.italicText}>{selectedSubstance.healthInvolve.limitConcentration}</Text>
-                        </Text>
-          
-                        <Text style={styles.modalText}>
-                          <Text style={styles.boldText}>Шляхи впливу: </Text>
-                          <Text style={styles.italicText}>{selectedSubstance.healthInvolve.involveWays}</Text>
-                        </Text>
-          
-                        <Text style={styles.modalText}>
-                          <Text style={styles.boldText}>Симптоми: </Text>
-                          <Text style={styles.italicText}>{selectedSubstance.healthInvolve.symptoms}</Text>
-                        </Text>
-          
-                        <Text style={styles.modalText}>
-                          <Text style={styles.boldText}>Вплив на органи: </Text>
-                          <Text style={styles.italicText}>{selectedSubstance.healthInvolve.organImpacts}</Text>
-                        </Text>
-          
-                        <Text style={styles.modalSubtitle}>Захист</Text>
-                        <Text style={styles.modalText}>
-                          <Text style={styles.boldText}>Дихання: </Text>
-                          <Text style={styles.italicText}>{selectedSubstance.respirationRecommendation}</Text>
-                        </Text>
-          
-                        <Text style={styles.modalText}>
-                          <Text style={styles.boldText}>Шкіра: </Text>
-                          <Text style={styles.italicText}>{selectedSubstance.skinDefenseRecommendation}</Text>
-                        </Text>
-          
-                        <Text style={styles.modalSubtitle}>Перша допомога</Text>
-          
-                        <Text style={styles.modalText}>
-                          <Text style={styles.boldText}>Очі: </Text>
-                          <Text style={styles.italicText}>{selectedSubstance.firstAid.eyes}</Text>
-                        </Text>
-          
-                        <Text style={styles.modalText}>
-                          <Text style={styles.boldText}>Шкіра: </Text>
-                          <Text style={styles.italicText}>{selectedSubstance.firstAid.skin}</Text>
-                        </Text>
-          
-                        <Text style={styles.modalText}>
-                          <Text style={styles.boldText}>При вдиханні: </Text>
-                          <Text style={styles.italicText}>{selectedSubstance.firstAid.inhalation}</Text>
-                        </Text>
-          
-                        <Text style={styles.modalText}>
-                          <Text style={styles.boldText}>При ковтанні: </Text>
-                          <Text style={styles.italicText}>{selectedSubstance.firstAid.swallowing}</Text>
-                        </Text>
-                      
-                        <Text style={styles.modalSubtitle}>Квадрат небезпеки</Text>
-                      
-                        <Text style={styles.modalText}>
-                          <Text style={styles.boldText}>Здоров'я: </Text>
-                          <Text style={styles.italicText}>{selectedSubstance.dangerSquare.health}</Text>
-                        </Text>
-                      
-                        <Text style={styles.modalText}>
-                          <Text style={styles.boldText}>Пожежна: </Text>
-                          <Text style={styles.italicText}>{selectedSubstance.dangerSquare.fire}</Text>
-                        </Text>
-                      
-                        <Text style={styles.modalText}>
-                          <Text style={styles.boldText}>Хімічна: </Text>
-                          <Text style={styles.italicText}>{selectedSubstance.dangerSquare.chemistry}</Text>
-                        </Text>
-                      
-                        <Text style={styles.modalText}>
-                          <Text style={styles.boldText}>Примітки: </Text>
-                          <Text style={styles.italicText}>{selectedSubstance.dangerSquare.other}</Text>
-                        </Text>
+                                          <Text style={styles.modalText}>
+                                            <Text style={styles.boldText}>Клас горючості: </Text>
+                                            <Text style={styles.italicText}>{selectedSubstance.flammabilityClass}</Text>
+                                          </Text>
+                          
+                                          {/* Physical Properties */}
+                                          <Text style={styles.modalSubtitle}>Фізичні властивості</Text>
+                                          
+                                          <Text style={styles.modalText}>
+                                            <Text style={styles.boldText}>Агрегатний стан: </Text>
+                                            <Text style={styles.italicText}>{selectedSubstance.aggregationState}</Text>
+                                          </Text>
+                          
+                                          <Text style={styles.modalText}>
+                                            <Text style={styles.boldText}>Густина за повітрям: </Text>
+                                            <Text style={styles.italicText}>{selectedSubstance.densityAir}</Text>
+                                          </Text>
+                          
+                                          <Text style={styles.modalText}>
+                                            <Text style={styles.boldText}>Густина за водою: </Text>
+                                            <Text style={styles.italicText}>{selectedSubstance.densityWater}</Text>
+                                          </Text>
+                          
+                                          <Text style={styles.modalText}>
+                                            <Text style={styles.boldText}>Розчинність: </Text>
+                                            <Text style={styles.italicText}>{selectedSubstance.solubility}</Text>
+                                          </Text>
+                          
+                                          <Text style={styles.modalText}>
+                                            <Text style={styles.boldText}>Молекулярна вага: </Text>
+                                            <Text style={styles.italicText}>{selectedSubstance.molecularWeight}</Text>
+                                          </Text>
+                          
+                                          {/* Temperature Properties */}
+                                          <Text style={styles.modalSubtitle}>Температурні властивості</Text>
+                          
+                                          <Text style={styles.modalText}>
+                                            <Text style={styles.boldText}>Температура кипіння: </Text>
+                                            <Text style={styles.italicText}>{selectedSubstance.temperatureProperties.boilingPoint}°C</Text>
+                                          </Text>
+                          
+                                          <Text style={styles.modalText}>
+                                            <Text style={styles.boldText}>Температура замерзання: </Text>
+                                            <Text style={styles.italicText}>{selectedSubstance.temperatureProperties.freezePoint}°C</Text>
+                                          </Text>
+                          
+                                          <Text style={styles.modalText}>
+                                            <Text style={styles.boldText}>Температура плавлення: </Text>
+                                            <Text style={styles.italicText}>{selectedSubstance.temperatureProperties.meltingPoint}°C</Text>
+                                          </Text>
+                          
+                                          <Text style={styles.modalText}>
+                                            <Text style={styles.boldText}>Температура спалахування: </Text>
+                                            <Text style={styles.italicText}>{selectedSubstance.temperatureProperties.flashPoint}°C</Text>
+                                          </Text>
+                          
+                                          {/* Hazard Information */}
+                                          <Text style={styles.modalSubtitle}>Інформація про небезпеку</Text>
+                          
+                                          <Text style={styles.modalText}>
+                                            <Text style={styles.boldText}>Загальна небезпека: </Text>
+                                            <Text style={styles.italicText}>{selectedSubstance.generalDanger}</Text>
+                                          </Text>
+                          
+                                          <Text style={styles.modalText}>
+                                            <Text style={styles.boldText}>Небезпека з водою: </Text>
+                                            <Text style={styles.italicText}>{selectedSubstance.waterDanger}</Text>
+                                          </Text>
+                          
+                                          <Text style={styles.modalText}>
+                                            <Text style={styles.boldText}>Стійкість тари: </Text>
+                                            <Text style={styles.italicText}>{selectedSubstance.container}</Text>
+                                          </Text>
+                          
+                                          {/* Health Effects */}
+                                          <Text style={styles.modalSubtitle}>Вплив на здоров'я</Text>
+                          
+                                          <Text style={styles.modalText}>
+                                            <Text style={styles.boldText}>Летальна доза: </Text>
+                                            <Text style={styles.italicText}>{selectedSubstance.healthInvolve.lethal}</Text>
+                                          </Text>
+                          
+                                          <Text style={styles.modalText}>
+                                            <Text style={styles.boldText}>Гранично допустима концентрація: </Text>
+                                            <Text style={styles.italicText}>{selectedSubstance.healthInvolve.limitConcentration}</Text>
+                                          </Text>
+                          
+                                          <Text style={styles.modalText}>
+                                            <Text style={styles.boldText}>Шляхи впливу: </Text>
+                                            <Text style={styles.italicText}>{selectedSubstance.healthInvolve.involveWays}</Text>
+                                          </Text>
+                          
+                                          <Text style={styles.modalText}>
+                                            <Text style={styles.boldText}>Симптоми: </Text>
+                                            <Text style={styles.italicText}>{selectedSubstance.healthInvolve.symptoms}</Text>
+                                          </Text>
+                          
+                                          <Text style={styles.modalText}>
+                                            <Text style={styles.boldText}>Вплив на органи: </Text>
+                                            <Text style={styles.italicText}>{selectedSubstance.healthInvolve.organImpacts}</Text>
+                                          </Text>
+                          
+                                          {/* Protection Recommendations */}
+                                          <Text style={styles.modalSubtitle}>Рекомендації щодо захисту</Text>
+                          
+                                          <Text style={styles.modalText}>
+                                            <Text style={styles.boldText}>Захист дихання: </Text>
+                                            <Text style={styles.italicText}>{selectedSubstance.respirationRecommendation}</Text>
+                                          </Text>
+                          
+                                          <Text style={styles.modalText}>
+                                            <Text style={styles.boldText}>Захист шкіри: </Text>
+                                            <Text style={styles.italicText}>{selectedSubstance.skinDefenseRecommendation}</Text>
+                                          </Text>
+                          
+                                          {/* First Aid */}
+                                          <Text style={styles.modalSubtitle}>Перша допомога</Text>
+                          
+                                          <Text style={styles.modalText}>
+                                            <Text style={styles.boldText}>Очі: </Text>
+                                            <Text style={styles.italicText}>{selectedSubstance.firstAid.eyes}</Text>
+                                          </Text>
+                          
+                                          <Text style={styles.modalText}>
+                                            <Text style={styles.boldText}>Шкіра: </Text>
+                                            <Text style={styles.italicText}>{selectedSubstance.firstAid.skin}</Text>
+                                          </Text>
+                          
+                                          <Text style={styles.modalText}>
+                                            <Text style={styles.boldText}>При вдиханні: </Text>
+                                            <Text style={styles.italicText}>{selectedSubstance.firstAid.inhalation}</Text>
+                                          </Text>
+                          
+                                          <Text style={styles.modalText}>
+                                            <Text style={styles.boldText}>При ковтанні: </Text>
+                                            <Text style={styles.italicText}>{selectedSubstance.firstAid.swallowing}</Text>
+                                          </Text>
+                          
+                                          {/* Danger Square */}
+                                          <Text style={styles.modalSubtitle}>Квадрат небезпеки</Text>
+                          
+                                          <Text style={styles.modalText}>
+                                            <Text style={styles.boldText}>Здоров'я: </Text>
+                                            <Text style={styles.italicText}>{selectedSubstance.dangerSquare.health}</Text>
+                                          </Text>
+                          
+                                          <Text style={styles.modalText}>
+                                            <Text style={styles.boldText}>Пожежна: </Text>
+                                            <Text style={styles.italicText}>{selectedSubstance.dangerSquare.fire}</Text>
+                                          </Text>
+                          
+                                          <Text style={styles.modalText}>
+                                            <Text style={styles.boldText}>Хімічна: </Text>
+                                            <Text style={styles.italicText}>{selectedSubstance.dangerSquare.chemistry}</Text>
+                                          </Text>
+                          
+                                          <Text style={styles.modalText}>
+                                            <Text style={styles.boldText}>Примітки: </Text>
+                                            <Text style={styles.italicText}>{selectedSubstance.dangerSquare.other}</Text>
+                                          </Text>
                       </View>
                       
                       ) : (
@@ -609,60 +586,120 @@ const styles = StyleSheet.create({
   disabledButton: {
     opacity: 0.5,
   },
-  modalContainer: {
+  contentContainer: {
+    flex: 1,
+  },
+  bookmarksContainer: {
+    padding: 16,
+  },
+  centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+  },
+  historyItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  historyItemContent: {
+    flex: 1,
+    marginRight: 8,
+  },
+  historyItemName: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#333',
+  },
+  historyItemFormula: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 2,
+  },
+  deleteButton: {
+    padding: 8,
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   modalContent: {
     backgroundColor: 'white',
+    borderRadius: 16,
     padding: 20,
-    borderRadius: 10,
-    width: '100%',
+    width: '90%',
     maxHeight: '90%',
   },
-  infoCard: {
-    marginBottom: 10,
-  },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 10,
+    fontSize: 18,
+    fontWeight: '600',
     color: '#1a73e8',
+    marginBottom: 16,
   },
   modalSubtitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginTop: 10,
-    marginBottom: 5,
+    fontSize: 16,
+    fontWeight: '600',
     color: '#1a73e8',
+    marginTop: 16,
+    marginBottom: 8,
   },
   modalText: {
-    fontSize: 16,
-    marginBottom: 5,
-    color: '#333',
-  },
-  closeButton: {
-    backgroundColor: '#007BFF',
-    padding: 15,
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  closeButtonText:{
-    color: '#fff',
-    textAlign: 'center',
-    fontWeight: 'bold',
-    fontSize: 16,
+    fontSize: 14,
+    marginBottom: 8,
+    lineHeight: 20,
   },
   boldText: {
     fontWeight: 'bold',
+    color: '#333',
   },
   italicText: {
-    fontStyle: 'italic',
+    color: '#666',
   },
+  closeButton: {
+    backgroundColor: '#1a73e8',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  closeButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  bookmarkButton: {
+    paddingBottom: 10,
+    paddingRight: 1,
+  },
+  infoCard: {
+    marginBottom: 16,
+  }
 });
