@@ -33,6 +33,17 @@ const ExploreScreen = () => {
   useEffect(() => {
     loadHistory();
   }, []);
+
+  useEffect(() => {
+    const checkBookmarkStatus = async () => {
+      if (selectedSubstance) {
+        const status = await isSubstanceBookmarked(selectedSubstance.oonNumber);
+        setIsBookmarked(status);
+      }
+    };
+    checkBookmarkStatus();
+  }, [selectedSubstance]);
+  
   
   const loadHistory = async () => {
     const history = await getHistory();
@@ -60,7 +71,7 @@ const ExploreScreen = () => {
   
     setIsLoading(true);
     try {
-      let url = `http://10.138.134.232:8080/substances`;
+      let url = `http://10.138.134.152:8080/substances`;
       
       switch (currentSearchType) {
         case 'name':
@@ -184,32 +195,23 @@ const ExploreScreen = () => {
     </Modal>
   );
 
-  useEffect(() => {
-    const checkBookmarkStatus = async () => {
-      if (selectedSubstance) {
-        const status = await isSubstanceBookmarked(selectedSubstance.oonNumber);
-        setIsBookmarked(status);
+  const handleBookmarkToggle = async () => {
+    if (!selectedSubstance) return;
+  
+    try {
+      if (isBookmarked) {
+        await removeFromBookmarks(selectedSubstance.oonNumber);
+        setIsBookmarked(false);
+      } else {
+        await addToBookmarks(selectedSubstance);
+        setIsBookmarked(true);
       }
-    };
-    checkBookmarkStatus();
-  }, [selectedSubstance]);
+    } catch (error) {
+      Alert.alert('Помилка', 'Не вдалося оновити закладки');
+    }
+  };
 
   const renderResultsModal = () => {
-    const handleBookmarkToggle = async () => {
-      if (!selectedSubstance) return;
-    
-      try {
-        if (isBookmarked) {
-          await removeFromBookmarks(selectedSubstance.oonNumber);
-          setIsBookmarked(false);
-        } else {
-          await addToBookmarks(selectedSubstance);
-          setIsBookmarked(true);
-        }
-      } catch (error) {
-        Alert.alert('Помилка', 'Не вдалося оновити закладки');
-      }
-    };
   
     return (
       <Modal
@@ -221,21 +223,21 @@ const ExploreScreen = () => {
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <ScrollView>
-              {selectedSubstance ? (
-                <View style={styles.infoCard}>
-                <View style={styles.cardHeader}>
-                  <Text style={styles.modalTitle}>Інформація про речовину</Text>
-                  <TouchableOpacity
-  style={styles.bookmarkButton}
-  onPress={handleBookmarkToggle}
->
-  {isBookmarked ? (
-    <Bookmark size={24} color="#1a73e8" fill="#1a73e8" />
-  ) : (
-    <Bookmark size={24} color="#1a73e8" />
-  )}
-</TouchableOpacity>
-                </View>
+            {selectedSubstance ? (
+  <View style={styles.infoCard}>
+    <View style={styles.cardHeader}>
+      <Text style={styles.modalTitle}>Інформація про речовину</Text>
+      <TouchableOpacity
+        style={styles.bookmarkButton}
+        onPress={handleBookmarkToggle}
+      >
+        {isBookmarked ? (
+          <Bookmark size={24} color="#1a73e8" fill="#1a73e8" />
+        ) : (
+          <Bookmark size={24} color="#1a73e8" />
+        )}
+      </TouchableOpacity>
+    </View>
   
                   <Text style={styles.modalText}>
                     <Text style={styles.boldText}>Назва: </Text>
@@ -491,7 +493,7 @@ return (
     onPress={async () => {
       setIsLoading(true);
       try {
-        const response = await fetch(`http://10.138.134.232:8080/substances/${encodeURIComponent(item.name)}`);
+        const response = await fetch(`http://10.138.134.152:8080/substances/${encodeURIComponent(item.name)}`);
         if (!response.ok) {
           throw new Error('Failed to fetch substance');
         }
@@ -757,7 +759,7 @@ const styles = StyleSheet.create({
   bookmarkButton: {
     paddingBottom: 10,
     paddingRight: 1,
-  }
+  },
 });
 
 export default ExploreScreen;

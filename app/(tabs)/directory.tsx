@@ -11,7 +11,7 @@ import {
   SafeAreaView,
   TextInput,
 } from 'react-native';
-import { Search, Filter } from 'lucide-react-native';
+import { Search, Filter, Bookmark } from 'lucide-react-native';
 import { Picker } from '@react-native-picker/picker';
 import { 
   Substance, 
@@ -23,6 +23,7 @@ import {
   Solubility,
   WaterDanger
 } from '@/components/substance';
+import { addToBookmarks, removeFromBookmarks, isSubstanceBookmarked } from '@/components/bookmarksStorage';
 
 const DirectoryScreen = () => {
   const [substances, setSubstances] = useState<Substance[]>([]);
@@ -32,6 +33,7 @@ const DirectoryScreen = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isBookmarked, setIsBookmarked] = useState(false);
   const [filters, setFilters] = useState<Filters>({
     dangerousNumber: '',
     aggregationState: '',
@@ -50,10 +52,20 @@ const DirectoryScreen = () => {
     filterSubstances();
   }, [searchQuery, filters, substances]);
 
+  useEffect(() => {
+    const checkBookmarkStatus = async () => {
+      if (selectedSubstance) {
+        const status = await isSubstanceBookmarked(selectedSubstance.oonNumber);
+        setIsBookmarked(status);
+      }
+    };
+    checkBookmarkStatus();
+  }, [selectedSubstance]);
+
   const fetchSubstances = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('http://10.138.134.232:8080/substances');
+      const response = await fetch('http://10.138.134.152:8080/substances');
       if (!response.ok) throw new Error('Network response was not ok');
       const data = await response.json();
       setSubstances(data);
@@ -110,7 +122,21 @@ const DirectoryScreen = () => {
     
     setFilteredSubstances(filtered);
   };
-
+  const handleBookmarkToggle = async () => {
+    if (!selectedSubstance) return;
+  
+    try {
+      if (isBookmarked) {
+        await removeFromBookmarks(selectedSubstance.oonNumber);
+        setIsBookmarked(false);
+      } else {
+        await addToBookmarks(selectedSubstance);
+        setIsBookmarked(true);
+      }
+    } catch (error) {
+      Alert.alert('Помилка', 'Не вдалося оновити закладки');
+    }
+  };
   const renderResultsModal = () => (
     <Modal
       visible={modalVisible}
@@ -123,7 +149,19 @@ const DirectoryScreen = () => {
           <ScrollView>
             {selectedSubstance && (
               <View style={styles.infoCard}>
-                <Text style={styles.modalTitle}>Інформація про речовину</Text>
+                <View style={styles.cardHeader}>
+  <Text style={styles.modalTitle}>Інформація про речовину</Text>
+  <TouchableOpacity
+    style={styles.bookmarkButton}
+    onPress={handleBookmarkToggle}
+  >
+    {isBookmarked ? (
+      <Bookmark size={24} color="#1a73e8" fill="#1a73e8" />
+    ) : (
+      <Bookmark size={24} color="#1a73e8" />
+    )}
+  </TouchableOpacity>
+</View>
 
               <Text style={styles.modalText}>
                                   <Text style={styles.boldText}>Назва: </Text>
@@ -703,6 +741,16 @@ const styles = StyleSheet.create({
   picker: {
     height: 50,
     width: '100%',
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  bookmarkButton: {
+    paddingBottom: 10,
+    paddingRight: 1,
   },
 });
 
