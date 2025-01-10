@@ -82,34 +82,34 @@ const DirectoryScreen = () => {
       // Базовий пошук
       const searchTerms = searchQuery.toLowerCase().split(' ');
       const matchesSearch = searchTerms.every(term =>
-        substance.name.toLowerCase().includes(term) ||
-        substance.formula.toLowerCase().includes(term) ||
-        substance.oonNumber.toString().includes(term) ||
-        substance.dangerousNumber.toLowerCase().includes(term)
+        (substance.name?.toLowerCase() || '').includes(term) ||
+        (substance.formula?.toLowerCase() || '').includes(term) ||
+        (substance.oonNumber?.toString() || '').includes(term) ||
+        (substance.dangerousNumber?.toString()?.toLowerCase() || '').includes(term)
       );
-
+  
       // Додаткові фільтри
       const matchesDangerousNumber = !filters.dangerousNumber || 
-        substance.dangerousNumber.toLowerCase().includes(filters.dangerousNumber.toLowerCase());
+        (substance.dangerousNumber?.toString()?.toLowerCase() || '').includes(filters.dangerousNumber.toLowerCase());
       
       const matchesAggregationState = !filters.aggregationState || 
-        substance.aggregationState.toLowerCase().includes(filters.aggregationState.toLowerCase());
+        (substance.aggregationState?.toLowerCase() || '').includes(filters.aggregationState.toLowerCase());
       
       const matchesDensityWater = !filters.densityWater || 
-        substance.densityWater.toLowerCase().includes(filters.densityWater.toLowerCase());
+        (substance.densityWater?.toLowerCase() || '').includes(filters.densityWater.toLowerCase());
       
       const matchesDensityAir = !filters.densityAir || 
-        substance.densityAir.toLowerCase().includes(filters.densityAir.toLowerCase());
+        (substance.densityAir?.toLowerCase() || '').includes(filters.densityAir.toLowerCase());
       
       const matchesSolubility = !filters.solubility || 
-        substance.solubility.toLowerCase().includes(filters.solubility.toLowerCase());
+        (substance.solubility?.toLowerCase() || '').includes(filters.solubility.toLowerCase());
       
       const matchesGeneralDanger = !filters.generalDanger || 
-        substance.generalDanger.toLowerCase().includes(filters.generalDanger.toLowerCase());
+        (substance.generalDanger?.toLowerCase() || '').includes(filters.generalDanger.toLowerCase());
       
       const matchesWaterDanger = !filters.waterDanger || 
-        substance.waterDanger.toLowerCase().includes(filters.waterDanger.toLowerCase());
-
+        (substance.waterDanger?.toLowerCase() || '').includes(filters.waterDanger.toLowerCase());
+  
       return matchesSearch && 
         matchesDangerousNumber && 
         matchesAggregationState && 
