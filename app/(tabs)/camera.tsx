@@ -12,7 +12,7 @@ const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 const SCAN_AREA_SIZE = SCREEN_WIDTH * 0.9;
 
-const OCR_SERVER_URL = `http://10.138.134.232:8080/substances/extract-text`;
+const OCR_SERVER_URL = `http://10.138.134.81:8080/substances/extract-text`;
 
 type PhotoType = 
   | ImageManipulator.ImageResult 

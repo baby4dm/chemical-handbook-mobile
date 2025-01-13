@@ -71,7 +71,7 @@ const ExploreScreen = () => {
   
     setIsLoading(true);
     try {
-      let url = `http://10.138.134.152:8080/substances`;
+      let url = `http://10.138.134.81:8080/substances`;
       
       switch (currentSearchType) {
         case 'name':
@@ -493,7 +493,7 @@ return (
     onPress={async () => {
       setIsLoading(true);
       try {
-        const response = await fetch(`http://10.138.134.152:8080/substances/${encodeURIComponent(item.name)}`);
+        const response = await fetch(`http://10.138.134.81:8080/substances/${encodeURIComponent(item.name)}`);
         if (!response.ok) {
           throw new Error('Failed to fetch substance');
         }

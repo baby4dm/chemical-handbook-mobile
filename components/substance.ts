@@ -92,7 +92,6 @@ export enum AggregationState {
   }
   
   export interface Filters {
-    dangerousNumber: string;
     aggregationState: AggregationState | '';
     densityWater: DensityWater | '';
     densityAir: DensityAir | '';
