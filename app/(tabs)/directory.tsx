@@ -190,51 +190,53 @@ const DirectoryScreen = () => {
   };
 
   const handleSearch = async () => {
-    if (internalSearchQuery.trim() !== '') {
-      setSearchQuery(internalSearchQuery.trim());
-      setPage(0);
-      setSubstances([]);
-      setHasMore(true);
+    setSearchQuery(internalSearchQuery);
+    setPage(0);
+    setSubstances([]);
+    setHasMore(true);
+    
+    try {
+      setIsLoading(true);
       
-      try {
-        setIsLoading(true);
-        
-        const params: SearchParams = {
-          page: '0',
-          limit: String(ITEMS_PER_PAGE),
-          search: internalSearchQuery.trim()
-        };
-
-        // Додаємо активні фільтри
-        if (filters.aggregationState) params.aggregationState = filters.aggregationState;
-        if (filters.densityWater) params.densityWater = filters.densityWater;
-        if (filters.densityAir) params.densityAir = filters.densityAir;
-        if (filters.solubility) params.solubility = filters.solubility;
-        if (filters.generalDanger) params.generalDanger = filters.generalDanger;
-        if (filters.waterDanger) params.waterDanger = filters.waterDanger;
-
-        const queryParams = new URLSearchParams(params);
-        
-        console.log('Search URL:', `http://10.138.134.81:8080/substances/search?${queryParams}`);
-
-        const response = await fetch(`http://10.138.134.81:8080/substances/search?${queryParams}`);
-        
-        if (!response.ok) {
-          throw new Error('Network response was not ok');
-        }
-        
-        const data = await response.json();
-        console.log('Результати пошуку:', data);
-        
-        setSubstances(data.content);
-        setHasMore(!data.last);
-        
-      } catch (error) {
-        console.error('Помилка пошуку:', error);
-        Alert.alert('Помилка', 'Не вдалося завантажити список речовин');
-      } finally {
-        setIsLoading(false);
+      const params: SearchParams = {
+        page: '0',
+        limit: String(ITEMS_PER_PAGE)
+      };
+  
+      // Додаємо пошуковий запит тільки якщо він не пустий
+      if (internalSearchQuery.trim()) {
+        params.search = internalSearchQuery.trim();
       }
+  
+      // Додаємо активні фільтри
+      if (filters.aggregationState) params.aggregationState = filters.aggregationState;
+      if (filters.densityWater) params.densityWater = filters.densityWater;
+      if (filters.densityAir) params.densityAir = filters.densityAir;
+      if (filters.solubility) params.solubility = filters.solubility;
+      if (filters.generalDanger) params.generalDanger = filters.generalDanger;
+      if (filters.waterDanger) params.waterDanger = filters.waterDanger;
+  
+      const queryParams = new URLSearchParams(params);
+      
+      console.log('Search URL:', `http://10.138.134.81:8080/substances/search?${queryParams}`);
+  
+      const response = await fetch(`http://10.138.134.81:8080/substances/search?${queryParams}`);
+      
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      
+      const data = await response.json();
+      console.log('Результати пошуку:', data);
+      
+      setSubstances(data.content);
+      setHasMore(!data.last);
+      
+    } catch (error) {
+      console.error('Помилка пошуку:', error);
+      Alert.alert('Помилка', 'Не вдалося завантажити список речовин');
+    } finally {
+      setIsLoading(false);
     }
   };
   
@@ -326,16 +328,94 @@ const DirectoryScreen = () => {
     }
   };
 
-  const handleFilterApply = () => {
-    setFilterModalVisible(false);
-    setPage(0);
-    setSubstances([]);
-    setHasMore(true);
-    fetchSubstances();
+  const handleFilterApply = async () => {
+    try {
+      setIsLoading(true);
+      setFilterModalVisible(false);
+      setPage(0);
+      
+      const params: SearchParams = {
+        page: '0',
+        limit: String(ITEMS_PER_PAGE)
+      };
+  
+      // Додаємо всі активні фільтри
+      if (filters.aggregationState) params.aggregationState = filters.aggregationState;
+      if (filters.densityWater) params.densityWater = filters.densityWater;
+      if (filters.densityAir) params.densityAir = filters.densityAir;
+      if (filters.solubility) params.solubility = filters.solubility;
+      if (filters.generalDanger) params.generalDanger = filters.generalDanger;
+      if (filters.waterDanger) params.waterDanger = filters.waterDanger;
+  
+      // Додаємо пошуковий запит якщо він є
+      if (searchQuery.trim()) {
+        params.search = searchQuery.trim();
+      }
+  
+      const queryParams = new URLSearchParams(params);
+      console.log('Filter URL:', `http://10.138.134.81:8080/substances/search?${queryParams}`);
+  
+      const response = await fetch(`http://10.138.134.81:8080/substances/search?${queryParams}`);
+      
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      
+      const data = await response.json();
+      setSubstances(data.content);
+      setHasMore(!data.last);
+      
+    } catch (error) {
+      console.error('Error applying filters:', error);
+      Alert.alert('Помилка', 'Не вдалося застосувати фільтри');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleFilterChange = (key: keyof Filters, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleResetFilters = async () => {
+    setFilters({
+      aggregationState: '',
+      densityWater: '',
+      densityAir: '',
+      solubility: '',
+      generalDanger: '',
+      waterDanger: '',
+    });
+    
+    try {
+      setIsLoading(true);
+      const params: SearchParams = {
+        page: '0',
+        limit: String(ITEMS_PER_PAGE)
+      };
+  
+      if (searchQuery.trim()) {
+        params.search = searchQuery.trim();
+      }
+  
+      const queryParams = new URLSearchParams(params);
+      const response = await fetch(`http://10.138.134.81:8080/substances/search?${queryParams}`);
+      
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      
+      const data = await response.json();
+      setSubstances(data.content);
+      setHasMore(!data.last);
+      setFilterModalVisible(false);
+      
+    } catch (error) {
+      console.error('Error resetting filters:', error);
+      Alert.alert('Помилка', 'Не вдалося скинути фільтри');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const renderSubstancesList = () => {
@@ -647,6 +727,7 @@ const DirectoryScreen = () => {
                 <Picker
                   selectedValue={filters.aggregationState}
                   style={styles.picker}
+                  onValueChange={(value) => handleFilterChange('aggregationState', value)}
                 >
                   <Picker.Item label="Агрегатний стан" value="" />
                   {Object.entries(AggregationState).map(([key, value]) => (
@@ -662,6 +743,7 @@ const DirectoryScreen = () => {
                 <Picker
                   selectedValue={filters.densityWater}
                   style={styles.picker}
+                  onValueChange={(value) => handleFilterChange('densityWater', value)}
                 >
                   <Picker.Item label="Густина за водою" value="" />
                   {Object.entries(DensityWater).map(([key, value]) => (
@@ -677,6 +759,7 @@ const DirectoryScreen = () => {
                 <Picker
                   selectedValue={filters.densityAir}
                   style={styles.picker}
+                  onValueChange={(value) => handleFilterChange('densityAir', value)}
                 >
                   <Picker.Item label="Густина за повітрям" value="" />
                   {Object.entries(DensityAir).map(([key, value]) => (
@@ -692,6 +775,7 @@ const DirectoryScreen = () => {
                 <Picker
                   selectedValue={filters.solubility}
                   style={styles.picker}
+                  onValueChange={(value) => handleFilterChange('solubility', value)}
                 >
                   <Picker.Item label="Розчинність" value="" />
                   {Object.entries(Solubility).map(([key, value]) => (
@@ -707,6 +791,7 @@ const DirectoryScreen = () => {
                 <Picker
                   selectedValue={filters.generalDanger}
                   style={styles.picker}
+                  onValueChange={(value) => handleFilterChange('generalDanger', value)}
                 >
                   <Picker.Item label="Загальна небезпека" value="" />
                   {Object.entries(GeneralDanger).map(([key, value]) => (
@@ -722,6 +807,7 @@ const DirectoryScreen = () => {
                 <Picker
                   selectedValue={filters.waterDanger}
                   style={styles.picker}
+                  onValueChange={(value) => handleFilterChange('waterDanger', value)}
                 >
                   <Picker.Item label="Небезпека при контакті з водою" value="" />
                   {Object.entries(WaterDanger).map(([key, value]) => (
@@ -732,13 +818,19 @@ const DirectoryScreen = () => {
             </View>
   
             <View style={styles.filterButtonsContainer}>
-              <TouchableOpacity
-                style={[styles.filterButton, styles.applyButton]}
-                onPress={handleFilterApply}
-              >
-                <Text style={styles.filterButtonText}>OK</Text>
-              </TouchableOpacity>
-            </View>
+  <TouchableOpacity
+    style={[styles.filterButton, styles.resetButton]}
+    onPress={handleResetFilters}
+  >
+    <Text style={styles.filterButtonText}>Скинути</Text>
+  </TouchableOpacity>
+  <TouchableOpacity
+    style={[styles.filterButton, styles.applyButton]}
+    onPress={handleFilterApply}
+  >
+    <Text style={styles.filterButtonText}>OK</Text>
+  </TouchableOpacity>
+</View>
           </ScrollView>
         </View>
       </View>
@@ -935,9 +1027,6 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 14,
   },
-  resetButton: {
-    backgroundColor: '#dc3545',
-  },
   pickerContainer: {
     borderWidth: 1,
     borderColor: '#e0e0e0',
@@ -993,10 +1082,26 @@ const styles = StyleSheet.create({
   searchButton: {
     padding: 8,
   },
+  filterButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '500',
+  },
   filterButtonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
     marginTop: 16,
     marginBottom: 16,
+    paddingHorizontal: 16,
+  },
+  resetButton: {
+    backgroundColor: '#dc3545',
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 0,
+    marginRight: 8,
   },
   applyButton: {
     backgroundColor: '#1a73e8',
@@ -1004,11 +1109,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 8,
     borderWidth: 0,
-  },
-  filterButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '500',
   },
 });
 
